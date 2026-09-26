@@ -487,8 +487,8 @@ local function ReturnSpawn()
 
     local savedPosition = respawnCFrame.Position
 
-    -- No permitir TP al spawn central medido.
-    -- El radio de 210 no se toca.
+    -- Solo evita el spawn central medido.
+    -- NO modifica la detección de huevos ni el radio de 210.
     if (savedPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
         return false
     end
