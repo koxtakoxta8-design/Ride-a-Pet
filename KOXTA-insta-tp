@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -32,6 +33,8 @@ local LOP = false
 local Busy = false
 
 local SavedSpawnCFrame = nil
+local EggLockConnection = nil
+local EggLockCFrame = nil
 
 local BestEgg = nil
 local BestLuck = 0
@@ -298,6 +301,14 @@ end
 -- TP
 --==============================================================
 
+local function StopEggLock()
+    if EggLockConnection then
+        EggLockConnection:Disconnect()
+        EggLockConnection = nil
+    end
+    EggLockCFrame = nil
+end
+
 local function TeleportToEgg(egg)
 
     local root = GetRoot()
@@ -307,13 +318,37 @@ local function TeleportToEgg(egg)
         return false
     end
 
-    root.CFrame =
+    -- El TP ocurre primero.
+    local targetCFrame =
         CFrame.new(
             position + Vector3.new(0, 2.5, 0)
         )
 
+    root.CFrame = targetCFrame
+
+    -- En cuanto termina el TP, se fija al personaje en esa posición.
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
+
+    EggLockCFrame = targetCFrame
+
+    StopEggLock()
+
+    EggLockConnection = RunService.Heartbeat:Connect(function()
+        if not InstaTP or not EggLockCFrame then
+            StopEggLock()
+            return
+        end
+
+        local currentRoot = GetRoot()
+        if not currentRoot then
+            return
+        end
+
+        currentRoot.CFrame = EggLockCFrame
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+    end)
 
     return true
 end
@@ -1102,9 +1137,8 @@ local function DoCycle()
         return
     end
 
+    -- Se congela inmediatamente después del TP; no hay ventana de movimiento.
     Freeze()
-
-    task.wait(0.12)
 
     if not InstaTP then
         Unfreeze()
@@ -1133,6 +1167,7 @@ local function DoCycle()
     -- Secuencia: TP al mejor huevo → agarrar → TP al spawn guardado.
     Status.Text = "● RETURN"
 
+    StopEggLock()
     ReturnSpawn()
 
     task.wait(0.15)
@@ -1283,6 +1318,7 @@ TPButton.Activated:Connect(function()
         Status.Text =
             "● READY"
 
+        StopEggLock()
         Unfreeze()
 
     end
