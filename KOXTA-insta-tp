@@ -642,338 +642,89 @@ local RanchRespawnCharacter = nil
 -- Aprovechamos esa posición y la actualizamos si el servidor cambia
 -- el punto de respawn.
 
-local function CaptureCurrentRanchSpawn(character)
-    if not character then
-        return
-    end
+--==============================================================
+-- SPAWN DE ENTRADA DEL JUGADOR
+--==============================================================
+-- El destino NO es la posición donde se ejecuta el script.
+-- Tampoco requiere matar al personaje.
+--
+-- Se intenta obtener el SpawnLocation/RespawnLocation que Roblox
+-- tiene asignado al jugador al entrar al servidor.
 
-    local root = character:FindFirstChild("HumanoidRootPart")
-        or character:WaitForChild("HumanoidRootPart", 5)
+local EntrySpawnCFrame = nil
 
-    if not root then
-        return
-    end
+local function ResolveEntrySpawn()
 
-    -- Esperar un instante evita capturar una posición intermedia
-    -- durante la animación/teleport inicial del respawn.
-    task.wait(0.35)
-
-    if character.Parent and root.Parent then
-        RanchRespawnCFrame = root.CFrame
-        RanchRespawnCharacter = character
-    end
-end
-
-local function FindRanchDeliveryPoint()
-
-    -- Este punto SOLO puede ser un punto de entrega/nido.
-    -- JAMÁS se debe escoger un huevo como destino de regreso.
-    if not RanchRespawnCFrame then
-        return nil
-    end
-
-    local anchor = RanchRespawnCFrame.Position
-    local bestPrompt = nil
-    local bestScore = -math.huge
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-
-        if obj:IsA("ProximityPrompt") and obj.Parent then
-
-            local part = obj.Parent
-
-            if not part:IsA("BasePart") then
-                part = obj:FindFirstAncestorWhichIsA("BasePart")
-            end
-
-            if part then
-
-                local distance =
-                    (part.Position - anchor).Magnitude
-
-                if distance <= 180 then
-
-                    local text =
-                        string.lower(
-                            tostring(obj.ActionText) .. " "
-                            .. tostring(obj.ObjectText) .. " "
-                            .. tostring(part.Name)
-                        )
-
-                    -- =================================================
-                    -- BLOQUEO ABSOLUTO DE HUEVOS
-                    -- =================================================
-                    local isEgg =
-                        string.find(text, "egg", 1, true)
-                        or string.find(text, "huevo", 1, true)
-
-                    local isGrab =
-                        string.find(text, "grab", 1, true)
-                        or string.find(text, "pick", 1, true)
-                        or string.find(text, "collect", 1, true)
-                        or string.find(text, "recoger", 1, true)
-                        or string.find(text, "agarrar", 1, true)
-                        or string.find(text, "tomar", 1, true)
-
-                    -- Si parece huevo o es un prompt para agarrarlo,
-                    -- NO puede ser destino de regreso.
-                    if not isEgg and not isGrab then
-
-                        local score = 0
-
-                        local isDelivery =
-                            string.find(text, "place", 1, true)
-                            or string.find(text, "put", 1, true)
-                            or string.find(text, "poner", 1, true)
-                            or string.find(text, "colocar", 1, true)
-                            or string.find(text, "deposit", 1, true)
-                            or string.find(text, "deliver", 1, true)
-                            or string.find(text, "entregar", 1, true)
-
-                        local isNest =
-                            string.find(text, "nest", 1, true)
-                            or string.find(text, "nido", 1, true)
-
-                        if isDelivery then
-                            score += 200
-                        end
-
-                        if isNest then
-                            score += 150
-                        end
-
-                        -- Si no tiene ninguna señal de entrega/nido,
-                        -- no lo usamos como destino.
-                        if not isDelivery and not isNest then
-                            score = -math.huge
-                        end
-
-                        score -= distance * 0.05
-
-                        if score > bestScore then
-                            bestScore = score
-                            bestPrompt = part
-                        end
-
-                    end
-                end
-            end
-        end
-    end
-
-    if bestPrompt and bestScore > 0 then
-        return bestPrompt.CFrame + Vector3.new(0, 3, 0)
-    end
-
-    -- Si no encontramos un nido/entrega inequívoco, NO arriesgarse
-    -- a ir a otro objeto. ReturnSpawn() usará SavedSpawnCFrame.
-    return nil
-end
-
-local function FindMyPlotBaseCFrame()
-
-    local playerName = string.lower(LocalPlayer.Name)
-    local displayName = string.lower(LocalPlayer.DisplayName)
-
-    local function matchesOwnerText(value)
-        local s = string.lower(tostring(value or ""))
-        return s == playerName
-            or s == displayName
-            or string.find(s, playerName, 1, true) ~= nil
-            or string.find(s, displayName, 1, true) ~= nil
-    end
-
-    local function isOwnerObject(obj)
-        if obj:IsA("ObjectValue") and obj.Value == LocalPlayer then
-            return true
-        end
-
-        if obj:IsA("StringValue") and matchesOwnerText(obj.Value) then
-            return true
-        end
-
-        if obj:IsA("IntValue") or obj:IsA("NumberValue") then
-            if tonumber(obj.Value) == LocalPlayer.UserId then
-                return true
-            end
-        end
-
-        for _, key in ipairs({
-            "Owner", "OwnerName", "PlotOwner", "Player",
-            "PlayerName", "Username", "User", "UserName",
-            "OwnerUserId", "PlayerUserId", "UserId"
-        }) do
-            local ok, value = pcall(function()
-                return obj:GetAttribute(key)
-            end)
-
-            if ok and value ~= nil then
-                if value == LocalPlayer.UserId
-                    or value == LocalPlayer
-                    or matchesOwnerText(value)
-                then
-                    return true
-                end
-            end
-        end
-
-        return false
-    end
-
-    local function chooseBasePart(container)
-        local best = nil
-        local bestScore = -math.huge
-
-        for _, obj in ipairs(container:GetDescendants()) do
-            if obj:IsA("BasePart") then
-
-                local n = string.lower(obj.Name)
-                local score = 0
-
-                if string.find(n, "spawn", 1, true) then
-                    score += 100
-                end
-                if string.find(n, "ranch", 1, true) then
-                    score += 80
-                end
-                if string.find(n, "plot", 1, true) then
-                    score += 70
-                end
-                if string.find(n, "home", 1, true) then
-                    score += 60
-                end
-                if string.find(n, "entrance", 1, true) then
-                    score += 50
-                end
-
-                -- Evitar piezas claramente pertenecientes a huevos/nidos.
-                if string.find(n, "egg", 1, true)
-                    or string.find(n, "huevo", 1, true)
-                then
-                    score -= 200
-                end
-
-                if string.find(n, "nest", 1, true)
-                    or string.find(n, "nido", 1, true)
-                then
-                    score -= 100
-                end
-
-                if score > bestScore then
-                    bestScore = score
-                    best = obj
-                end
-            end
-        end
-
-        if best and bestScore > 0 then
-            return best.CFrame + Vector3.new(0, 3, 0)
-        end
-
-        return nil
-    end
-
-    -- Primero buscar un contenedor cuyo propietario sea ESTE jugador.
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-
-        if isOwnerObject(obj) then
-
-            local container = obj:FindFirstAncestorWhichIsA("Model")
-
-            if not container then
-                container = obj.Parent
-            end
-
-            if container then
-                local result = chooseBasePart(container)
-
-                if result then
-                    return result
-                end
-            end
-        end
-    end
-
-    -- Segundo método: buscar un cartel/GUI dentro de un modelo
-    -- que muestre el nombre del jugador.
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-
-        if obj:IsA("TextLabel")
-            or obj:IsA("TextButton")
-            or obj:IsA("TextBox")
-        then
-
-            if matchesOwnerText(obj.Text) then
-
-                local container =
-                    obj:FindFirstAncestorWhichIsA("Model")
-
-                if container then
-                    local result = chooseBasePart(container)
-
-                    if result then
-                        return result
-                    end
-                end
-            end
-        end
-    end
-
-    -- Tercer método: Roblox puede exponer directamente el spawn
-    -- asignado al jugador.
+    -- 1) RespawnLocation asignado directamente al jugador.
     local ok, respawn = pcall(function()
         return LocalPlayer.RespawnLocation
     end)
 
     if ok and respawn and respawn:IsA("BasePart") then
-        return respawn.CFrame + Vector3.new(0, 3, 0)
+        EntrySpawnCFrame =
+            respawn.CFrame + Vector3.new(0, 3, 0)
+
+        RanchRespawnCFrame = EntrySpawnCFrame
+        SavedSpawnCFrame = EntrySpawnCFrame
+
+        return EntrySpawnCFrame
+    end
+
+    -- 2) Buscar SpawnLocation que Roblox tenga disponible.
+    -- No usamos la posición actual del personaje.
+    local character = LocalPlayer.Character
+
+    if character then
+        local root = character:FindFirstChild("HumanoidRootPart")
+
+        if root then
+            local closest = nil
+            local closestDistance = math.huge
+
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+
+                if obj:IsA("SpawnLocation") then
+
+                    local distance =
+                        (obj.Position - root.Position).Magnitude
+
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closest = obj
+                    end
+                end
+            end
+
+            if closest then
+                EntrySpawnCFrame =
+                    closest.CFrame + Vector3.new(0, 3, 0)
+
+                RanchRespawnCFrame = EntrySpawnCFrame
+                SavedSpawnCFrame = EntrySpawnCFrame
+
+                return EntrySpawnCFrame
+            end
+        end
     end
 
     return nil
 end
 
 local function GetRespawnCFrame()
-
-    -- IMPORTANTE:
-    -- NO usar la posición actual del personaje.
-    -- El script puede ejecutarse lejos de la base.
-    --
-    -- Primero localizar el plot/ranch que pertenece al jugador.
-    local plotCFrame = FindMyPlotBaseCFrame()
-
-    if plotCFrame then
-        RanchRespawnCFrame = plotCFrame
-        return plotCFrame
-    end
-
-    -- Fallback únicamente al RespawnLocation real del jugador.
-    local ok, respawn = pcall(function()
-        return LocalPlayer.RespawnLocation
-    end)
-
-    if ok and respawn and respawn:IsA("BasePart") then
-        RanchRespawnCFrame =
-            respawn.CFrame + Vector3.new(0, 3, 0)
-
-        return RanchRespawnCFrame
-    end
-
-    -- No inventar una posición.
-    return RanchRespawnCFrame
+    return EntrySpawnCFrame
 end
 
 local function SaveSpawn()
-
-    -- Resolver la BASE por propietario, NO guardar donde se ejecutó
-    -- el script.
-    local base = GetRespawnCFrame()
-
-    if base then
-        RanchRespawnCFrame = base
-        SavedSpawnCFrame = base
-    end
-
+    -- Resolver el spawn asignado al entrar.
+    -- NUNCA guardar la posición actual del jugador.
+    return ResolveEntrySpawn() ~= nil
 end
+
+-- Resolver una vez al cargar el script.
+task.spawn(function()
+    task.wait(0.5)
+    ResolveEntrySpawn()
+end)
 
 --==============================================================
 -- TP
@@ -1040,32 +791,22 @@ local function ReturnSpawn()
         return false
     end
 
-    -- =========================================================
-    -- DESTINO: BASE / RANCHO DEL JUGADOR
-    -- =========================================================
-    -- Usar directamente el respawn que el juego asignó al jugador
-    -- en este servidor. No buscar huevos, nidos ni otro spawn.
-    local targetCFrame =
-        RanchRespawnCFrame
-        or SavedSpawnCFrame
+    -- DESTINO FIJO: spawn de entrada asignado al jugador.
+    -- No usar posición actual, huevo, nido ni otro punto.
+    local targetCFrame = EntrySpawnCFrame
+
+    if not targetCFrame then
+        targetCFrame = ResolveEntrySpawn()
+    end
 
     if not targetCFrame then
         return false
     end
 
-    local targetPosition = targetCFrame.Position
-
-    -- Nunca permitir que el regreso termine en el spawn central.
-    if (targetPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
-        return false
-    end
-
-    -- TP directo a la BASE.
     root.CFrame = targetCFrame
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
 
-    -- Reafirmar el mismo destino un frame después.
     task.wait()
 
     if root.Parent then
@@ -2053,6 +1794,9 @@ TPButton.Activated:Connect(function()
 
     if InstaTP then
 
+        -- Solo usa un respawn REAL ya capturado.
+        -- Si aún no has muerto desde que ejecutaste el script,
+        -- no guarda tu posición actual.
         SaveSpawn()
 
         TPButton.Text =
