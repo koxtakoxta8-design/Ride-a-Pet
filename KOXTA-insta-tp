@@ -306,37 +306,81 @@ end
 
 local function RefreshBestEgg()
 
-    local best = nil
-    local bestValue = -1
+    --==========================================================
+    -- ORDEN COMPLETO DE HUEVOS: MENOR -> MAYOR
+    --==========================================================
+    -- El orden se basa en el nombre/jerarquía definida aquí,
+    -- NO en el valor de Luck.
+    --
+    -- El archivo original contiene 22 huevos.
+    -- Solaris Egg se añade como 23 porque indicaste que vale 300B.
 
-    for obj in pairs(EggCache) do
+    local EggNameRank = {
+        ["White Egg"] = 1,
+        ["Brown Egg"] = 2,
+        ["Cracked Egg"] = 3,
+        ["Easter Egg"] = 4,
+        ["Stone Egg"] = 5,
+        ["Leaf Egg"] = 6,
+        ["Mushroom Egg"] = 7,
+        ["Flower Egg"] = 8,
+        ["Slime Egg"] = 9,
+        ["Ice Egg"] = 10,
+        ["Glass Egg"] = 11,
+        ["Golden Egg"] = 12,
+        ["Crystal Egg"] = 13,
+        ["Skull Egg"] = 14,
+        ["Dominus Egg"] = 15,
+        ["Flaming Egg"] = 16,
+        ["Sinister Egg"] = 17,
+        ["Soul Egg"] = 18,
+        ["Aurora Egg"] = 19,
+        ["Galaxy Egg"] = 20,
+        ["Black Hole Egg"] = 21,
+        ["Solaris Egg"] = 22,
+        ["Cherub Egg"] = 23,
+    }
 
-        if IsValidEgg(obj) then
-
-            local data = GetEggData(obj.Name)
-
-            if data then
-
-                local value =
-                    ParseLuck(data.Luck)
-
-                if value > bestValue then
-                    bestValue = value
-                    best = obj
-                end
-
-            end
-
-        else
-
-            EggCache[obj] = nil
-
+    local function GetEggRank(name)
+        if EggNameRank[name] then
+            return EggNameRank[name]
         end
 
+        local lower = string.lower(tostring(name or ""))
+
+        for eggName, rank in pairs(EggNameRank) do
+            if string.find(lower, string.lower(eggName), 1, true) then
+                return rank
+            end
+        end
+
+        return nil
+    end
+
+    local best = nil
+    local bestRank = -1
+
+    for obj in pairs(EggCache) do
+        if IsValidEgg(obj) then
+            local rank = GetEggRank(obj.Name)
+
+            if rank and rank > bestRank then
+                bestRank = rank
+                best = obj
+            end
+        else
+            EggCache[obj] = nil
+        end
     end
 
     BestEgg = best
-    BestLuck = bestValue
+
+    if best then
+        local data = GetEggData(best.Name)
+        BestLuck = data and data.Luck or "N/A"
+    else
+        BestLuck = 0
+    end
 
     return best
 end
