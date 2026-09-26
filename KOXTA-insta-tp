@@ -33,6 +33,7 @@ local LOP = false
 local Busy = false
 
 local SavedSpawnCFrame = nil
+local EntrySpawnCFrame = nil
 local EggLockConnection = nil
 local EggLockCFrame = nil
 
@@ -126,6 +127,29 @@ local function GetRoot()
 
     return character:FindFirstChild("HumanoidRootPart")
 end
+
+--==============================================================
+-- CAPTURAR PUNTO DE ENTRADA
+--==============================================================
+
+task.spawn(function()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart", 10)
+
+    if root and not EntrySpawnCFrame then
+        EntrySpawnCFrame = root.CFrame + Vector3.new(0, 3, 0)
+    end
+end)
+
+LocalPlayer.CharacterAdded:Connect(function(character)
+    -- Solo captura el primer punto de entrada; no lo reemplaza después.
+    if not EntrySpawnCFrame then
+        local root = character:WaitForChild("HumanoidRootPart", 10)
+        if root then
+            EntrySpawnCFrame = root.CFrame + Vector3.new(0, 3, 0)
+        end
+    end
+end)
 
 local function GetPart(obj)
     if not obj then
@@ -289,33 +313,37 @@ end
 
 local function GetRespawnCFrame()
 
-    -- Usa el SpawnLocation asignado al jugador, si existe.
+    -- 1) Usa el SpawnLocation asignado al jugador, si existe.
     local respawnLocation = LocalPlayer.RespawnLocation
 
     if respawnLocation and respawnLocation:IsA("SpawnLocation") then
         return respawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
-    -- Si no hay RespawnLocation asignado, busca un SpawnLocation activo.
+    -- 2) Busca el SpawnLocation activo correspondiente al jugador.
     local character = LocalPlayer.Character
     local teamColor = LocalPlayer.TeamColor
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("SpawnLocation") and obj.Enabled then
-            if not character or not obj.Neutral then
-                if obj.Neutral or obj.TeamColor == teamColor then
-                    return obj.CFrame + Vector3.new(0, 3, 0)
-                end
+            if obj.Neutral or obj.TeamColor == teamColor then
+                return obj.CFrame + Vector3.new(0, 3, 0)
             end
         end
+    end
+
+    -- 3) Algunos juegos no usan SpawnLocation de Roblox.
+    -- En ese caso usamos el punto de entrada capturado al cargar el script.
+    if EntrySpawnCFrame then
+        return EntrySpawnCFrame
     end
 
     return nil
 end
 
 local function SaveSpawn()
-    -- Ya no guarda la posición donde estaba el jugador.
-    -- Guarda el CFrame del respawn real del jugador.
+    -- NO guarda la posición al activar INSTA STEAL.
+    -- Usa únicamente el respawn/entrada detectado.
     SavedSpawnCFrame = GetRespawnCFrame()
 end
 
@@ -378,14 +406,17 @@ end
 
 local function ReturnSpawn()
 
+    -- El bloqueo del huevo debe estar detenido antes de regresar.
+    StopEggLock()
+
     local root = GetRoot()
 
     if not root then
         return false
     end
 
-    -- Siempre vuelve al SpawnLocation real del jugador.
-    -- NO usa la posición donde estaba antes de iniciar INSTA STEAL.
+    -- Siempre resuelve el respawn real/entrada.
+    -- Nunca usa la posición donde estaba al activar INSTA STEAL.
     local respawnCFrame = GetRespawnCFrame()
 
     if not respawnCFrame then
@@ -393,9 +424,19 @@ local function ReturnSpawn()
     end
 
     root.CFrame = respawnCFrame
-
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
+
+    -- Segundo TP de seguridad para juegos que intentan mover al jugador
+    -- inmediatamente después de recoger el huevo.
+    task.wait(0.05)
+
+    local currentRoot = GetRoot()
+    if currentRoot then
+        currentRoot.CFrame = respawnCFrame
+        currentRoot.AssemblyLinearVelocity = Vector3.zero
+        currentRoot.AssemblyAngularVelocity = Vector3.zero
+    end
 
     return true
 end
