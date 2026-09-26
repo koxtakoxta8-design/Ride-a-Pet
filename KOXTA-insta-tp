@@ -44,6 +44,9 @@ local EggLockCFrame = nil
 local BestEgg = nil
 local BestLuck = 0
 
+-- Evita que el refresco seleccione de nuevo el huevo que se está procesando.
+local CycleBusy = false
+
 --==============================================================
 -- ULTRA EGG RANK
 --==============================================================
@@ -505,6 +508,10 @@ end
 --==============================================================
 
 local function RefreshBestEgg()
+
+    if CycleBusy then
+        return BestEgg
+    end
 
     local best = nil
     local bestRank = -1
@@ -1486,9 +1493,15 @@ local function DoCycle()
         return
     end
 
+    -- Bloquear el selector mientras este huevo está siendo procesado.
+    -- Así el refresco no puede volver a seleccionarlo cuando ya fue
+    -- llevado al rancho.
+    CycleBusy = true
+
     Status.Text = "● TELEPORT"
 
     if not TeleportToEgg(egg) then
+        CycleBusy = false
         return
     end
 
@@ -1496,6 +1509,7 @@ local function DoCycle()
     Freeze()
 
     if not InstaTP then
+        CycleBusy = false
         Unfreeze()
         return
     end
@@ -1506,9 +1520,18 @@ local function DoCycle()
     local grabbed = AutoGrab(egg)
 
     if not grabbed then
+        CycleBusy = false
         Status.Text = "● NO SE PUDO AGARRAR"
         Unfreeze()
         return
+    end
+
+    -- El huevo ya fue procesado. Sacarlo inmediatamente de la caché
+    -- evita que, al llegar al rancho, vuelva a ser elegido.
+    EggCache[egg] = nil
+    if BestEgg == egg then
+        BestEgg = nil
+        BestLuck = 0
     end
 
     -- Espera breve para que termine el agarre antes de regresar.
@@ -1535,6 +1558,16 @@ local function DoCycle()
     Status.Text =
         returned and (LOP and "● LOOP ACTIVE" or "● READY")
         or "● SPAWN NO GUARDADO"
+
+    -- Solo ahora permitimos que el detector seleccione otro huevo.
+    CycleBusy = false
+
+    -- Recalcular después de haber dejado el huevo procesado fuera
+    -- de la caché.
+    if InstaTP then
+        RefreshBestEgg()
+        UpdateUI()
+    end
 
 end
 
