@@ -406,9 +406,7 @@ end
 
 local function ReturnSpawn()
 
-    -- El bloqueo del huevo debe estar detenido antes de regresar.
-    StopEggLock()
-
+    -- El bloqueo del huevo ya fue liberado por DoCycle.
     local root = GetRoot()
 
     if not root then
@@ -1232,22 +1230,28 @@ local function DoCycle()
     task.wait(0.25)
 
     if not InstaTP then
+        StopEggLock()
         Unfreeze()
         return
     end
 
-    -- Secuencia: TP al mejor huevo → agarrar → TP al spawn guardado.
+    -- Secuencia: TP al mejor huevo → agarrar → TP al respawn.
     Status.Text = "● RETURN"
 
-    -- Primero libera el bloqueo del huevo.
+    -- MUY IMPORTANTE:
+    -- primero se libera completamente el bloqueo que mantenía
+    -- al personaje pegado al huevo.
     StopEggLock()
 
-    -- Después hace obligatoriamente el TP al spawn guardado.
+    -- Ahora se permite el movimiento normal antes del TP de regreso.
+    Unfreeze()
+
+    task.wait(0.05)
+
+    -- TP al respawn/entrada, no a la posición anterior.
     local returned = ReturnSpawn()
 
     task.wait(0.15)
-
-    Unfreeze()
 
     Status.Text =
         returned and (LOP and "● LOOP ACTIVE" or "● READY")
