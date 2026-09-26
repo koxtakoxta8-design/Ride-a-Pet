@@ -20,13 +20,15 @@ local LocalPlayer = Players.LocalPlayer
 
 local REFRESH_TIME = 1
 local DETECTION_DISTANCE = 100000
-local EXCLUSION_RADIUS = 210
+local BASE_EXCLUSION_RADIUS = 210
 
-local EXCLUSION_CENTER = Vector3.new(
-    146.87,
-    40316.12,
-    911.14
-)
+-- Zona independiente para impedir el TP al spawn central.
+-- El radio de detección/exclusión de 210 permanece intacto.
+local SPAWN_NO_TP_CENTER = Vector3.new(146.87, 40316.1, 911.14)
+local SPAWN_NO_TP_RADIUS = 50
+
+
+local BASE_EXCLUSION_CENTER = Vector3.new(146.87, 40316.1, 911.14)
 
 local InstaTP = false
 local LOP = false
@@ -391,107 +393,13 @@ end
 
 local function GetRespawnCFrame()
 
-    --==========================================================
-    -- SPAWN DE LA BASE, NO EL SPAWN CENTRAL
-    --==========================================================
-    -- Como el juego tiene 2 SpawnLocation, primero intentamos
-    -- identificar el spawn que pertenece a la base del jugador.
-    --
-    -- No usamos "el primero encontrado" ni el más cercano.
-    -- Buscamos referencias de dueño/base/plot en los nombres y
-    -- atributos de los SpawnLocation.
-
-    local playerName = string.lower(LocalPlayer.Name)
-    local displayName = string.lower(LocalPlayer.DisplayName)
-
-    local function TextMatchesPlayer(text)
-        text = string.lower(tostring(text or ""))
-
-        return string.find(text, playerName, 1, true)
-            or string.find(text, displayName, 1, true)
-            or string.find(text, "your", 1, true)
-            or string.find(text, "player", 1, true)
-            or string.find(text, "owner", 1, true)
-            or string.find(text, "base", 1, true)
-            or string.find(text, "plot", 1, true)
+    -- Usa exclusivamente el SpawnLocation identificado al entrar.
+    if EntrySpawnLocation and EntrySpawnLocation.Parent then
+        return EntrySpawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
-    local candidates = {}
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
-
-            local score = 0
-
-            -- Nombre del spawn.
-            if TextMatchesPlayer(obj.Name) then
-                score += 10
-            end
-
-            -- Atributos del spawn.
-            for attributeName, value in pairs(obj:GetAttributes()) do
-                if TextMatchesPlayer(attributeName) then
-                    score += 5
-                end
-
-                if TextMatchesPlayer(value) then
-                    score += 10
-                end
-            end
-
-            -- Revisar nombres de padres. Muchos juegos guardan
-            -- el SpawnLocation dentro de un modelo/plot de la base.
-            local parent = obj.Parent
-            local depth = 0
-
-            while parent and parent ~= Workspace and depth < 6 do
-                if TextMatchesPlayer(parent.Name) then
-                    score += 8
-                end
-
-                for attributeName, value in pairs(parent:GetAttributes()) do
-                    if TextMatchesPlayer(attributeName) then
-                        score += 4
-                    end
-
-                    if TextMatchesPlayer(value) then
-                        score += 8
-                    end
-                end
-
-                parent = parent.Parent
-                depth += 1
-            end
-
-            table.insert(candidates, {
-                spawn = obj,
-                score = score
-            })
-        end
-    end
-
-    -- Escoge únicamente el candidato con mayor evidencia de
-    -- pertenecer a la base del jugador.
-    local best = nil
-    local bestScore = -1
-
-    for _, candidate in ipairs(candidates) do
-        if candidate.score > bestScore then
-            bestScore = candidate.score
-            best = candidate.spawn
-        end
-    end
-
-    if best and bestScore > 0 then
-        return best.CFrame + Vector3.new(0, 3, 0)
-    end
-
-    -- Si el juego tiene RespawnLocation asignado, úsalo como
-    -- respaldo antes de considerar cualquier spawn genérico.
-    local assigned = LocalPlayer.RespawnLocation
-
-    if assigned and assigned:IsA("SpawnLocation") then
-        return assigned.CFrame + Vector3.new(0, 3, 0)
+    if EntrySpawnCFrame then
+        return EntrySpawnCFrame
     end
 
     return nil
@@ -574,6 +482,14 @@ local function ReturnSpawn()
     local respawnCFrame = SavedSpawnCFrame or GetRespawnCFrame()
 
     if not respawnCFrame then
+        return false
+    end
+
+    local savedPosition = respawnCFrame.Position
+
+    -- No permitir TP al spawn central medido.
+    -- El radio de 210 no se toca.
+    if (savedPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
         return false
     end
 
