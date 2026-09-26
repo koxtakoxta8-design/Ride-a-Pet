@@ -129,26 +129,35 @@ local function GetRoot()
 end
 
 --==============================================================
--- CAPTURAR PUNTO DE ENTRADA
+-- CAPTURAR PUNTO DE ENTRADA EXACTO
 --==============================================================
 
-task.spawn(function()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = character:WaitForChild("HumanoidRootPart", 10)
+-- Este CFrame se guarda SOLO una vez, al entrar al servidor.
+-- No se vuelve a cambiar después de hacer TP al huevo.
+local EntrySpawnCFrame = nil
+local EntryCaptured = false
 
-    if root and not EntrySpawnCFrame then
-        EntrySpawnCFrame = root.CFrame + Vector3.new(0, 3, 0)
+local function CaptureEntrySpawn(character)
+    if EntryCaptured or not character then
+        return
     end
-end)
+
+    local root = character:WaitForChild("HumanoidRootPart", 15)
+
+    if root then
+        EntrySpawnCFrame = root.CFrame
+        EntryCaptured = true
+    end
+end
+
+if LocalPlayer.Character then
+    task.spawn(function()
+        CaptureEntrySpawn(LocalPlayer.Character)
+    end)
+end
 
 LocalPlayer.CharacterAdded:Connect(function(character)
-    -- Solo captura el primer punto de entrada; no lo reemplaza después.
-    if not EntrySpawnCFrame then
-        local root = character:WaitForChild("HumanoidRootPart", 10)
-        if root then
-            EntrySpawnCFrame = root.CFrame + Vector3.new(0, 3, 0)
-        end
-    end
+    CaptureEntrySpawn(character)
 end)
 
 local function GetPart(obj)
@@ -313,38 +322,27 @@ end
 
 local function GetRespawnCFrame()
 
-    -- 1) Usa el SpawnLocation asignado al jugador, si existe.
+    -- PRIORIDAD ABSOLUTA:
+    -- vuelve exactamente al punto donde apareció el jugador al entrar.
+    -- Esto evita escoger incorrectamente uno de los otros SpawnLocation.
+    if EntrySpawnCFrame then
+        return EntrySpawnCFrame
+    end
+
+    -- Fallback solamente si todavía no se pudo capturar la entrada.
     local respawnLocation = LocalPlayer.RespawnLocation
 
     if respawnLocation and respawnLocation:IsA("SpawnLocation") then
         return respawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
-    -- 2) Busca el SpawnLocation activo correspondiente al jugador.
-    local character = LocalPlayer.Character
-    local teamColor = LocalPlayer.TeamColor
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
-            if obj.Neutral or obj.TeamColor == teamColor then
-                return obj.CFrame + Vector3.new(0, 3, 0)
-            end
-        end
-    end
-
-    -- 3) Algunos juegos no usan SpawnLocation de Roblox.
-    -- En ese caso usamos el punto de entrada capturado al cargar el script.
-    if EntrySpawnCFrame then
-        return EntrySpawnCFrame
-    end
-
     return nil
 end
 
 local function SaveSpawn()
-    -- NO guarda la posición al activar INSTA STEAL.
-    -- Usa únicamente el respawn/entrada detectado.
-    SavedSpawnCFrame = GetRespawnCFrame()
+    -- NO guarda la posición actual.
+    -- Solo utiliza el punto exacto capturado al entrar.
+    SavedSpawnCFrame = EntrySpawnCFrame or GetRespawnCFrame()
 end
 
 --==============================================================
@@ -415,7 +413,7 @@ local function ReturnSpawn()
 
     -- Siempre resuelve el respawn real/entrada.
     -- Nunca usa la posición donde estaba al activar INSTA STEAL.
-    local respawnCFrame = GetRespawnCFrame()
+    local respawnCFrame = SavedSpawnCFrame or EntrySpawnCFrame or GetRespawnCFrame()
 
     if not respawnCFrame then
         return false
