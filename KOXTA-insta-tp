@@ -51,6 +51,8 @@ local CycleState = "IDLE"
 -- IDLE -> SEARCHING -> GOING_TO_EGG -> GRABBING -> RETURNING -> IDLE
 
 local ReturningToRanch = false
+local CarryingEgg = false
+local CycleTarget = nil
 
 --==============================================================
 -- ULTRA EGG RANK
@@ -517,34 +519,64 @@ end
 --==============================================================
 
 --==============================================================
--- REDETECCIÓN DE HUEVOS SOLTADOS
+-- REDETECCIÓN DE HUEVOS SOLTADOS - V2
 --==============================================================
--- Solo vigila los huevos que acabamos de procesar. No vuelve a
--- escanear todo Workspace, por lo que no recupera los lagazos.
+-- IMPORTANTE:
+-- El huevo robado puede moverse junto al jugador mientras vuelve al
+-- rancho. No debe interpretarse ese movimiento como "lo soltó".
+-- Por eso queda bloqueado durante TODO el regreso.
+--
+-- Una vez terminado el regreso, se toma una nueva posición base.
+-- Solo si después vuelve a moverse se considera que fue soltado.
 
 task.spawn(function()
+
     while task.wait(0.25) do
 
         for egg, info in pairs(HeldEggs) do
 
             if not egg or not egg.Parent then
+
                 HeldEggs[egg] = nil
 
+            elseif ReturningToRanch or CycleBusy then
+
+                -- NO REINSERTAR.
+                -- El huevo puede estar moviéndose porque lo llevamos.
+                -- Esperamos hasta que termine el ciclo.
+                info.waitingForDrop = true
+
             else
+
                 local position = GetPosition(egg)
 
-                if position and info.position then
+                if position then
 
-                    local moved =
-                        (position - info.position).Magnitude
+                    -- Primera comprobación después de volver al rancho:
+                    -- establecer una posición nueva, SIN reinsertarlo.
+                    if info.waitingForDrop then
 
-                    -- Si el mismo huevo cambió de lugar después de
-                    -- haber sido soltado, vuelve al detector.
-                    if moved >= 2 then
+                        info.position = position
+                        info.waitingForDrop = false
+                        info.releasedAt = os.clock()
 
-                        HeldEggs[egg] = nil
-                        EggCache[egg] = true
+                    elseif info.position then
 
+                        local moved =
+                            (position - info.position).Magnitude
+
+                        -- Dar una pequeña ventana para estabilizarlo.
+                        local stableTime =
+                            os.clock() - (info.releasedAt or os.clock())
+
+                        -- Si después de estabilizarse se mueve >= 2 studs,
+                        -- ahora sí asumimos que fue soltado.
+                        if stableTime >= 0.50 and moved >= 2 then
+
+                            HeldEggs[egg] = nil
+                            EggCache[egg] = true
+
+                        end
                     end
                 end
             end
@@ -1657,6 +1689,16 @@ local function DoCycle()
     UpdateUI()
 
     local egg = BestEgg
+    -- Objetivo duro: no permitir que otro refresh lo cambie durante este ciclo.
+    if not egg or not egg.Parent then
+        CycleState = "IDLE"
+        Status.Text = "● BUSCANDO HUEVOS"
+        return
+    end
+
+    CycleTarget = egg
+    CycleBusy = true
+
 
     if not egg or not egg.Parent then
         CycleState = "IDLE"
@@ -1666,7 +1708,6 @@ local function DoCycle()
 
     -- Congelar ESTE objetivo. No se cambia hasta terminar todo
     -- el ciclo completo.
-    CycleBusy = true
     CycleState = "GOING_TO_EGG"
 
     Status.Text = "● YENDO AL MEJOR HUEVO"
@@ -1707,13 +1748,17 @@ local function DoCycle()
         return
     end
 
+    CarryingEgg = true
+
     -- Marcar el huevo procesado. Puede volver a detectarse si
     -- posteriormente se suelta y cambia de posición.
     EggCache[egg] = nil
 
     HeldEggs[egg] = {
         position = GetPosition(egg),
-        time = os.clock()
+        time = os.clock(),
+        waitingForDrop = true,
+        releasedAt = nil
     }
 
     if BestEgg == egg then
@@ -1750,11 +1795,21 @@ local function DoCycle()
         return
     end
 
+    -- El huevo acaba de llegar al rancho. NO permitir que su
+    -- movimiento durante el robo sea interpretado como un drop.
+    if HeldEggs[egg] and egg and egg.Parent then
+        HeldEggs[egg].position = GetPosition(egg)
+        HeldEggs[egg].waitingForDrop = false
+        HeldEggs[egg].releasedAt = os.clock()
+    end
+
     -- =========================================================
     -- 5. RECIÉN AQUÍ TERMINÓ EL CICLO
     -- =========================================================
+    CarryingEgg = false
     CycleState = "IDLE"
     CycleBusy = false
+    CycleTarget = nil
 
     Status.Text = LOP and "● LOOP ACTIVE" or "● READY"
 
@@ -1848,19 +1903,44 @@ TPButton.Activated:Connect(function()
 
                 while InstaTP and LOP do
 
-                    if not Busy then
+                    if not Busy and not CycleBusy and not ReturningToRanch then
 
                         Busy = true
 
-                        pcall(function()
-                            DoCycle()
-                        end)
+                        local ok = xpcall(
+                            function()
+                                DoCycle()
+                            end,
+                            function(err)
+                                return tostring(err)
+                            end
+                        )
+
+                        -- Si algo falla después de agarrar el huevo,
+                        -- regresar al rancho antes de iniciar otro ciclo.
+                        if not ok and CarryingEgg then
+                            ReturningToRanch = true
+                            CycleState = "RETURNING"
+                            Status.Text = "● RECUPERANDO RANCHO"
+
+                            pcall(function()
+                                StopEggLock()
+                                ReturnSpawn()
+                            end)
+
+                            ReturningToRanch = false
+                            CarryingEgg = false
+                            CycleTarget = nil
+                            CycleBusy = false
+                            CycleState = "IDLE"
+                        end
 
                         Busy = false
+                        task.wait(0.45)
 
                     end
 
-                    task.wait(REFRESH_TIME)
+                    task.wait(0.10)
 
                 end
 
@@ -1931,8 +2011,10 @@ task.spawn(function()
 
     while ScreenGui.Parent do
 
-        RefreshBestEgg()
-        UpdateUI()
+        if not LOP and not CycleBusy and not ReturningToRanch then
+            RefreshBestEgg()
+            UpdateUI()
+        end
 
         task.wait(REFRESH_TIME)
 
