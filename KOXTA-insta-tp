@@ -20,22 +20,24 @@ local LocalPlayer = Players.LocalPlayer
 
 local REFRESH_TIME = 1
 local DETECTION_DISTANCE = 100000
-local BASE_EXCLUSION_RADIUS = 210
+local EXCLUSION_RADIUS = 210
 
--- Zona independiente para impedir el TP al spawn central.
--- El radio de detección/exclusión de 210 permanece intacto.
-local SPAWN_NO_TP_CENTER = Vector3.new(146.87, 40316.1, 911.14)
+local EXCLUSION_CENTER = Vector3.new(
+    146.87,
+    40316.12,
+    911.14
+)
+
+-- SOLO para impedir que el TP de regreso caiga en el spawn central.
+-- NO modifica EXCLUSION_RADIUS = 210 ni la detección de huevos.
+local SPAWN_NO_TP_CENTER = EXCLUSION_CENTER
 local SPAWN_NO_TP_RADIUS = 50
-
-
-local BASE_EXCLUSION_CENTER = Vector3.new(146.87, 40316.1, 911.14)
 
 local InstaTP = false
 local LOP = false
 local Busy = false
 
 local SavedSpawnCFrame = nil
-local EntrySpawnCFrame = nil
 local EggLockConnection = nil
 local EggLockCFrame = nil
 
@@ -129,63 +131,6 @@ local function GetRoot()
 
     return character:FindFirstChild("HumanoidRootPart")
 end
-
---==============================================================
--- CAPTURAR EL SPAWN CORRECTO DE ENTRADA
---==============================================================
-
-local EntrySpawnCFrame = nil
-local EntrySpawnLocation = nil
-local EntryCaptured = false
-
-local function CaptureEntrySpawn(character)
-    if EntryCaptured or not character then
-        return
-    end
-
-    local root = character:WaitForChild("HumanoidRootPart", 15)
-    if not root then
-        return
-    end
-
-    -- Busca el SpawnLocation más cercano al personaje en el momento
-    -- en que aparece. Con 2 spawns, toma el que realmente corresponde
-    -- a la posición de entrada, no simplemente el primero encontrado.
-    local closestSpawn = nil
-    local closestDistance = math.huge
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
-            local distance = (obj.Position - root.Position).Magnitude
-
-            if distance < closestDistance then
-                closestDistance = distance
-                closestSpawn = obj
-            end
-        end
-    end
-
-    if closestSpawn then
-        EntrySpawnLocation = closestSpawn
-        EntrySpawnCFrame = closestSpawn.CFrame + Vector3.new(0, 3, 0)
-    else
-        -- Fallback: si el juego no expone SpawnLocation, usa el punto
-        -- exacto donde apareció el personaje.
-        EntrySpawnCFrame = root.CFrame
-    end
-
-    EntryCaptured = true
-end
-
-if LocalPlayer.Character then
-    task.spawn(function()
-        CaptureEntrySpawn(LocalPlayer.Character)
-    end)
-end
-
-LocalPlayer.CharacterAdded:Connect(function(character)
-    CaptureEntrySpawn(character)
-end)
 
 local function GetPart(obj)
     if not obj then
@@ -309,14 +254,10 @@ end
 local function RefreshBestEgg()
 
     --==========================================================
-    -- ORDEN COMPLETO DE HUEVOS: MENOR -> MAYOR
+    -- ORDEN POR NOMBRE: MENOR -> MAYOR
     --==========================================================
-    -- El orden se basa en el nombre/jerarquía definida aquí,
-    -- NO en el valor de Luck.
-    --
-    -- El archivo original contiene 22 huevos.
-    -- Solaris Egg se añade como 23 porque indicaste que vale 300B.
-
+    -- La detección de huevos NO se modifica.
+    -- Solo cambia cómo se elige el mejor huevo.
     local EggNameRank = {
         ["White Egg"] = 1,
         ["Brown Egg"] = 2,
@@ -343,28 +284,23 @@ local function RefreshBestEgg()
         ["Cherub Egg"] = 23,
     }
 
-    local function GetEggRank(name)
-        if EggNameRank[name] then
-            return EggNameRank[name]
-        end
-
-        local lower = string.lower(tostring(name or ""))
-
-        for eggName, rank in pairs(EggNameRank) do
-            if string.find(lower, string.lower(eggName), 1, true) then
-                return rank
-            end
-        end
-
-        return nil
-    end
-
     local best = nil
     local bestRank = -1
 
     for obj in pairs(EggCache) do
         if IsValidEgg(obj) then
-            local rank = GetEggRank(obj.Name)
+            local rank = EggNameRank[obj.Name]
+
+            -- Permite nombres con texto adicional.
+            if not rank then
+                local lowerName = string.lower(obj.Name)
+                for eggName, value in pairs(EggNameRank) do
+                    if string.find(lowerName, string.lower(eggName), 1, true) then
+                        rank = value
+                        break
+                    end
+                end
+            end
 
             if rank and rank > bestRank then
                 bestRank = rank
@@ -393,21 +329,33 @@ end
 
 local function GetRespawnCFrame()
 
-    -- Usa exclusivamente el SpawnLocation identificado al entrar.
-    if EntrySpawnLocation and EntrySpawnLocation.Parent then
-        return EntrySpawnLocation.CFrame + Vector3.new(0, 3, 0)
+    -- Usa el SpawnLocation asignado al jugador, si existe.
+    local respawnLocation = LocalPlayer.RespawnLocation
+
+    if respawnLocation and respawnLocation:IsA("SpawnLocation") then
+        return respawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
-    if EntrySpawnCFrame then
-        return EntrySpawnCFrame
+    -- Si no hay RespawnLocation asignado, busca un SpawnLocation activo.
+    local character = LocalPlayer.Character
+    local teamColor = LocalPlayer.TeamColor
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("SpawnLocation") and obj.Enabled then
+            if not character or not obj.Neutral then
+                if obj.Neutral or obj.TeamColor == teamColor then
+                    return obj.CFrame + Vector3.new(0, 3, 0)
+                end
+            end
+        end
     end
 
     return nil
 end
 
 local function SaveSpawn()
-    -- NO guarda la posición actual.
-    -- Guarda únicamente el SpawnLocation elegido al entrar.
+    -- Ya no guarda la posición donde estaba el jugador.
+    -- Guarda el CFrame del respawn real del jugador.
     SavedSpawnCFrame = GetRespawnCFrame()
 end
 
@@ -470,43 +418,24 @@ end
 
 local function ReturnSpawn()
 
-    -- El bloqueo del huevo ya fue liberado por DoCycle.
     local root = GetRoot()
 
-    if not root then
+    if not root or not SavedSpawnCFrame then
         return false
     end
 
-    -- Siempre resuelve el respawn real/entrada.
-    -- Nunca usa la posición donde estaba al activar INSTA STEAL.
-    local respawnCFrame = SavedSpawnCFrame or GetRespawnCFrame()
+    local savedPosition = SavedSpawnCFrame.Position
 
-    if not respawnCFrame then
-        return false
-    end
-
-    local savedPosition = respawnCFrame.Position
-
-    -- Solo evita el spawn central medido.
-    -- NO modifica la detección de huevos ni el radio de 210.
+    -- Bloquea únicamente el spawn central medido en 50 studs.
+    -- El detector de huevos sigue usando exactamente sus 210 studs.
     if (savedPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
         return false
     end
 
-    root.CFrame = respawnCFrame
+    root.CFrame = SavedSpawnCFrame
+
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
-
-    -- Segundo TP de seguridad para juegos que intentan mover al jugador
-    -- inmediatamente después de recoger el huevo.
-    task.wait(0.05)
-
-    local currentRoot = GetRoot()
-    if currentRoot then
-        currentRoot.CFrame = respawnCFrame
-        currentRoot.AssemblyLinearVelocity = Vector3.zero
-        currentRoot.AssemblyAngularVelocity = Vector3.zero
-    end
 
     return true
 end
@@ -1302,28 +1231,22 @@ local function DoCycle()
     task.wait(0.25)
 
     if not InstaTP then
-        StopEggLock()
         Unfreeze()
         return
     end
 
-    -- Secuencia: TP al mejor huevo → agarrar → TP al respawn.
+    -- Secuencia: TP al mejor huevo → agarrar → TP al spawn guardado.
     Status.Text = "● RETURN"
 
-    -- MUY IMPORTANTE:
-    -- primero se libera completamente el bloqueo que mantenía
-    -- al personaje pegado al huevo.
+    -- Primero libera el bloqueo del huevo.
     StopEggLock()
 
-    -- Ahora se permite el movimiento normal antes del TP de regreso.
-    Unfreeze()
-
-    task.wait(0.05)
-
-    -- TP al respawn/entrada, no a la posición anterior.
+    -- Después hace obligatoriamente el TP al spawn guardado.
     local returned = ReturnSpawn()
 
     task.wait(0.15)
+
+    Unfreeze()
 
     Status.Text =
         returned and (LOP and "● LOOP ACTIVE" or "● READY")
