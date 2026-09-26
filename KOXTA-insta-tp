@@ -318,6 +318,9 @@ local function TeleportToEgg(egg)
         return false
     end
 
+    -- Detiene cualquier bloqueo anterior ANTES de crear el nuevo.
+    StopEggLock()
+
     -- El TP ocurre primero.
     local targetCFrame =
         CFrame.new(
@@ -326,17 +329,15 @@ local function TeleportToEgg(egg)
 
     root.CFrame = targetCFrame
 
-    -- En cuanto termina el TP, se fija al personaje en esa posición.
+    -- Cero movimiento al terminar el TP.
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
 
+    -- Guarda la posición y mantenla hasta terminar el Auto Grab.
     EggLockCFrame = targetCFrame
-
-    StopEggLock()
 
     EggLockConnection = RunService.Heartbeat:Connect(function()
         if not InstaTP or not EggLockCFrame then
-            StopEggLock()
             return
         end
 
@@ -1167,15 +1168,19 @@ local function DoCycle()
     -- Secuencia: TP al mejor huevo → agarrar → TP al spawn guardado.
     Status.Text = "● RETURN"
 
+    -- Primero libera el bloqueo del huevo.
     StopEggLock()
-    ReturnSpawn()
+
+    -- Después hace obligatoriamente el TP al spawn guardado.
+    local returned = ReturnSpawn()
 
     task.wait(0.15)
 
     Unfreeze()
 
     Status.Text =
-        LOP and "● LOOP ACTIVE" or "● READY"
+        returned and (LOP and "● LOOP ACTIVE" or "● READY")
+        or "● SPAWN NO GUARDADO"
 
 end
 
