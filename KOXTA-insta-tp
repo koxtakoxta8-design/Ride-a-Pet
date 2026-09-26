@@ -518,30 +518,78 @@ end
 -- RESPawn REAL
 --==============================================================
 
-local function GetRespawnCFrame()
+local RanchRespawnCFrame = nil
+local RanchRespawnCharacter = nil
 
-    -- Usa el SpawnLocation asignado al jugador, si existe.
-    local respawnLocation = LocalPlayer.RespawnLocation
+--==============================================================
+-- DETECTAR EL RANCHO DEL SERVIDOR ACTUAL
+--==============================================================
+-- No usamos coordenadas fijas ni el spawn central.
+-- El juego ya sabe dónde debe aparecer el jugador al respawnear.
+-- Aprovechamos esa posición y la actualizamos si el servidor cambia
+-- el punto de respawn.
 
-    if respawnLocation and respawnLocation:IsA("SpawnLocation") then
-        return respawnLocation.CFrame + Vector3.new(0, 3, 0)
+local function CaptureCurrentRanchSpawn(character)
+    if not character then
+        return
     end
 
-    -- Si no hay RespawnLocation asignado, busca un SpawnLocation activo.
-    local character = LocalPlayer.Character
-    local teamColor = LocalPlayer.TeamColor
+    local root = character:FindFirstChild("HumanoidRootPart")
+        or character:WaitForChild("HumanoidRootPart", 5)
 
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
-            if not character or not obj.Neutral then
-                if obj.Neutral or obj.TeamColor == teamColor then
-                    return obj.CFrame + Vector3.new(0, 3, 0)
-                end
+    if not root then
+        return
+    end
+
+    -- Esperar un instante evita capturar una posición intermedia
+    -- durante la animación/teleport inicial del respawn.
+    task.wait(0.35)
+
+    if character.Parent and root.Parent then
+        RanchRespawnCFrame = root.CFrame
+        RanchRespawnCharacter = character
+    end
+end
+
+local function GetRespawnCFrame()
+
+    -- Si el personaje actual ya fue colocado por el juego en su
+    -- rancho, esa es la referencia correcta para ESTE servidor.
+    local character = LocalPlayer.Character
+
+    if character and character.Parent then
+        local root = character:FindFirstChild("HumanoidRootPart")
+
+        if root then
+            -- Si nunca capturamos el rancho de esta sesión,
+            -- capturarlo desde el respawn actual.
+            if not RanchRespawnCFrame then
+                CaptureCurrentRanchSpawn(character)
             end
         end
     end
 
-    return nil
+    -- Solo devolver la posición aprendida del respawn real.
+    -- NO hacemos fallback a SpawnLocation, RespawnLocation,
+    -- plot central ni coordenadas fijas.
+    return RanchRespawnCFrame
+end
+
+-- Cada respawn vuelve a aprender el rancho del servidor actual.
+LocalPlayer.CharacterAdded:Connect(function(character)
+    RanchRespawnCFrame = nil
+    RanchRespawnCharacter = character
+
+    task.spawn(function()
+        CaptureCurrentRanchSpawn(character)
+    end)
+end)
+
+-- Si el personaje ya existe al ejecutar el script.
+if LocalPlayer.Character then
+    task.spawn(function()
+        CaptureCurrentRanchSpawn(LocalPlayer.Character)
+    end)
 end
 
 local function SaveSpawn()
