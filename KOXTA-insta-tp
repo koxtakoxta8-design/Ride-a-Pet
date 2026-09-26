@@ -341,30 +341,68 @@ end
 --==============================================================
 
 --==============================================================
--- GLOBAL EGG SCANNER
+-- GLOBAL EGG SCANNER - OPTIMIZADO
 --==============================================================
--- Escanea TODO Workspace, no una zona concreta del mapa.
--- También mantiene los huevos que aparezcan después.
--- El filtro de 210 studs de IsValidEgg() NO se modifica.
+-- Un escaneo inicial completo y después solo cambios nuevos.
+-- NO hace GetDescendants() recursivo por cada objeto ni escanea
+-- todo Workspace cada segundo, que era lo que provocaba los lagazos.
 
 local EggCache = EggCache or {}
 
+local KnownEggNames = {
+    ["white egg"] = true,
+    ["brown egg"] = true,
+    ["cracked egg"] = true,
+    ["easter egg"] = true,
+    ["stone egg"] = true,
+    ["leaf egg"] = true,
+    ["mushroom egg"] = true,
+    ["flower egg"] = true,
+    ["slime egg"] = true,
+    ["ice egg"] = true,
+    ["glass egg"] = true,
+    ["golden egg"] = true,
+    ["crystal egg"] = true,
+    ["skull egg"] = true,
+    ["dominus egg"] = true,
+    ["flaming egg"] = true,
+    ["sinister egg"] = true,
+    ["soul egg"] = true,
+    ["aurora egg"] = true,
+    ["galaxy egg"] = true,
+    ["black hole egg"] = true,
+    ["solaris egg"] = true,
+    ["cherub egg"] = true,
+}
+
 local function LooksLikeEggObject(obj)
-    if not obj then
+    if not obj or not obj.Parent then
         return false
     end
 
     local name = string.lower(tostring(obj.Name or ""))
 
-    -- Known egg names / partial names.
-    if string.find(name, "egg", 1, true)
-        or string.find(name, "huevo", 1, true)
-    then
+    -- Primero: nombre de la instancia.
+    if KnownEggNames[name] or string.find(name, "egg", 1, true) then
         return true
     end
 
-    -- Check displayed text for eggs whose Instance name is generic.
-    for _, child in ipairs(obj:GetDescendants()) do
+    -- Segundo: revisar solo el propio objeto y sus hijos DIRECTOS.
+    -- No recorrer todos sus descendientes.
+    if obj:IsA("TextLabel")
+        or obj:IsA("TextButton")
+        or obj:IsA("TextBox")
+    then
+        local text = string.lower(tostring(obj.Text or ""))
+
+        if string.find(text, "egg", 1, true)
+            or string.find(text, "huevo", 1, true)
+        then
+            return true
+        end
+    end
+
+    for _, child in ipairs(obj:GetChildren()) do
         if child:IsA("TextLabel")
             or child:IsA("TextButton")
             or child:IsA("TextBox")
@@ -388,31 +426,18 @@ local function RegisterEgg(obj)
     end
 end
 
-local function FullEggScan()
-    -- Limpia referencias destruidas.
-    for obj in pairs(EggCache) do
-        if not obj or not obj.Parent then
-            EggCache[obj] = nil
-        end
-    end
-
-    -- TODO Workspace: incluye Overworld, Giant Tree, caves,
-    -- desert, waterfall, maze y zonas ocultas.
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        RegisterEgg(obj)
-    end
+-- Un SOLO escaneo inicial de todo Workspace.
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    RegisterEgg(obj)
 end
 
--- Primer escaneo global.
-FullEggScan()
-
--- Captura huevos que aparezcan después del escaneo.
+-- Desde aquí solo procesamos objetos nuevos.
 Workspace.DescendantAdded:Connect(function(obj)
     task.defer(function()
         RegisterEgg(obj)
 
-        -- Algunos huevos se construyen en varias piezas.
-        task.wait(0.05)
+        -- Algunos huevos reciben nombre/hijos después de aparecer.
+        task.wait(0.15)
 
         if obj.Parent then
             RegisterEgg(obj)
@@ -420,17 +445,17 @@ Workspace.DescendantAdded:Connect(function(obj)
     end)
 end)
 
--- Reescaneo periódico para no perder huevos que cambian de
--- nombre, se clonan o se mueven entre carpetas.
+-- Limpieza barata cada 5 segundos.
+-- No vuelve a recorrer Workspace.
 task.spawn(function()
-    while task.wait(1) do
-        FullEggScan()
+    while task.wait(5) do
+        for obj in pairs(EggCache) do
+            if not obj or not obj.Parent then
+                EggCache[obj] = nil
+            end
+        end
     end
 end)
-
---==============================================================
--- VALIDAR HUEVO
---==============================================================
 
 local function IsValidEgg(obj)
 
