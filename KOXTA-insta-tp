@@ -468,162 +468,205 @@ end
 local function GetRespawnCFrame()
 
     --==========================================================
-    -- REGRESAR AL PLOT / JARDÍN DEL JUGADOR
+    -- REGRESO: SOLO "MY PLOT" / JARDÍN DEL JUGADOR
     --==========================================================
-    -- No elegimos un SpawnLocation global, porque el mapa tiene
-    -- uno central y otro relacionado con los plots.
-    --
-    -- Primero buscamos un contenedor que identifique al jugador
-    -- por nombre/atributos y dentro de él buscamos su punto de
-    -- spawn/plot/jardín.
+    -- Las guías actuales de Ride A Pet identifican la parcela
+    -- propia mediante el cartel "My Plot" y el nombre del rancho.
+    -- No usamos SpawnLocation ni LocalPlayer.RespawnLocation.
 
     local playerName = string.lower(LocalPlayer.Name)
     local displayName = string.lower(LocalPlayer.DisplayName)
 
-    local function MatchesPlayer(text)
-        text = string.lower(tostring(text or ""))
+    local function Normalize(v)
+        return string.lower(tostring(v or "")):gsub("%s+", " ")
+    end
 
+    local function ContainsPlayer(text)
+        text = Normalize(text)
         return string.find(text, playerName, 1, true)
             or string.find(text, displayName, 1, true)
     end
 
-    local function LooksLikeBaseContainer(obj)
-        local n = string.lower(tostring(obj.Name or ""))
-
-        return string.find(n, "plot", 1, true)
-            or string.find(n, "base", 1, true)
-            or string.find(n, "garden", 1, true)
-            or string.find(n, "jardin", 1, true)
-            or string.find(n, "farm", 1, true)
-            or string.find(n, "island", 1, true)
+    local function IsPlotText(text)
+        text = Normalize(text)
+        return string.find(text, "my plot", 1, true)
+            or string.find(text, "mi parcela", 1, true)
+            or string.find(text, "plot", 1, true)
+            or string.find(text, "ranch", 1, true)
+            or string.find(text, "garden", 1, true)
+            or string.find(text, "jardin", 1, true)
     end
 
-    local function IsOwnedByPlayer(obj)
-        if MatchesPlayer(obj.Name) then
-            return true
+    local function GetTextFromGui(obj)
+        if obj:IsA("TextLabel")
+            or obj:IsA("TextButton")
+            or obj:IsA("TextBox")
+        then
+            return obj.Text
         end
 
-        for attributeName, value in pairs(obj:GetAttributes()) do
-            local a = string.lower(tostring(attributeName or ""))
-            local v = string.lower(tostring(value or ""))
-
-            if (
-                string.find(a, "owner", 1, true)
-                or string.find(a, "player", 1, true)
-                or string.find(a, "user", 1, true)
-                or string.find(a, "plot", 1, true)
-            ) then
-                if MatchesPlayer(v) then
-                    return true
-                end
-            end
-        end
-
-        return false
+        return nil
     end
 
-    local function ScoreTarget(obj)
-        local n = string.lower(tostring(obj.Name or ""))
+    local function ScoreContainer(obj)
         local score = 0
+        local name = Normalize(obj.Name)
 
-        if obj:IsA("SpawnLocation") then
-            score += 20
+        if ContainsPlayer(name) then
+            score += 100
         end
 
-        if string.find(n, "spawn", 1, true) then
+        if string.find(name, "plot", 1, true) then
+            score += 40
+        end
+
+        if string.find(name, "ranch", 1, true)
+            or string.find(name, "garden", 1, true)
+            or string.find(name, "jardin", 1, true)
+        then
             score += 30
-        end
-
-        if string.find(n, "home", 1, true) then
-            score += 25
-        end
-
-        if string.find(n, "plot", 1, true) then
-            score += 20
-        end
-
-        if string.find(n, "garden", 1, true)
-            or string.find(n, "jardin", 1, true) then
-            score += 20
-        end
-
-        if string.find(n, "base", 1, true) then
-            score += 15
         end
 
         return score
     end
 
-    local bestTarget = nil
+    local bestContainer = nil
     local bestScore = -1
 
-    -- Primero: buscar contenedores que claramente pertenezcan
-    -- al jugador.
-    for _, container in ipairs(Workspace:GetDescendants()) do
+    -- Buscar el cartel "My Plot" y el nombre del jugador.
+    -- Subimos por los padres para encontrar el modelo/Folder
+    -- que representa la parcela completa.
+    for _, gui in ipairs(Workspace:GetDescendants()) do
 
-        if (container:IsA("Model") or container:IsA("Folder"))
-            and IsOwnedByPlayer(container)
-        then
+        local text = GetTextFromGui(gui)
 
-            local containerScore =
-                LooksLikeBaseContainer(container) and 20 or 5
+        if text then
 
-            for _, obj in ipairs(container:GetDescendants()) do
+            local plotText = IsPlotText(text)
+            local playerText = ContainsPlayer(text)
 
-                if obj:IsA("SpawnLocation") then
-                    local score =
-                        containerScore
-                        + ScoreTarget(obj)
+            if plotText or playerText then
 
-                    if obj.Enabled then
+                local current = gui
+                local depth = 0
+
+                while current and current ~= Workspace and depth < 8 do
+
+                    local score = ScoreContainer(current)
+
+                    if plotText then
+                        score += 40
+                    end
+
+                    if playerText then
+                        score += 80
+                    end
+
+                    -- Un contenedor de parcela suele contener varias
+                    -- Parts, nests, pets, etc.
+                    local partCount = 0
+                    for _, child in ipairs(current:GetDescendants()) do
+                        if child:IsA("BasePart") then
+                            partCount += 1
+                            if partCount >= 20 then
+                                break
+                            end
+                        end
+                    end
+
+                    if partCount >= 5 then
                         score += 10
                     end
 
                     if score > bestScore then
                         bestScore = score
-                        bestTarget = obj
+                        bestContainer = current
                     end
-                end
 
-                -- Algunos juegos usan una Part/Point en vez de
-                -- SpawnLocation para marcar la entrada del plot.
-                if obj:IsA("BasePart") then
-                    local score =
-                        containerScore
-                        + ScoreTarget(obj)
-
-                    if score >= 30 and score > bestScore then
-                        bestScore = score
-                        bestTarget = obj
-                    end
+                    current = current.Parent
+                    depth += 1
                 end
             end
         end
     end
 
-    if bestTarget and bestTarget:IsA("BasePart") then
-        return bestTarget.CFrame + Vector3.new(0, 3, 0)
-    end
+    -- Buscar una parte de entrada/punto de regreso dentro del plot.
+    if bestContainer and bestScore > 0 then
 
-    -- Segundo intento: SpawnLocation cuyo propio nombre/atributos
-    -- identifiquen directamente al jugador.
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
+        local bestPart = nil
+        local bestPartScore = -1
 
-            if IsOwnedByPlayer(obj) then
-                return obj.CFrame + Vector3.new(0, 3, 0)
+        for _, obj in ipairs(bestContainer:GetDescendants()) do
+
+            if obj:IsA("BasePart") then
+
+                local name = Normalize(obj.Name)
+                local score = 0
+
+                if string.find(name, "spawn", 1, true) then
+                    score += 80
+                end
+
+                if string.find(name, "entrance", 1, true)
+                    or string.find(name, "entrada", 1, true)
+                then
+                    score += 70
+                end
+
+                if string.find(name, "home", 1, true) then
+                    score += 60
+                end
+
+                if string.find(name, "plot", 1, true)
+                    or string.find(name, "ranch", 1, true)
+                    or string.find(name, "garden", 1, true)
+                    or string.find(name, "jardin", 1, true)
+                then
+                    score += 30
+                end
+
+                -- Evitar partes pequeñas/interiores como decoración.
+                local size = obj.Size
+                if size.X >= 3 and size.Z >= 3 then
+                    score += 10
+                end
+
+                if score > bestPartScore then
+                    bestPartScore = score
+                    bestPart = obj
+                end
             end
+        end
+
+        if bestPart and bestPartScore >= 30 then
+            return bestPart.CFrame + Vector3.new(0, 3, 0)
+        end
+
+        -- Si no hay una parte llamada Spawn/Entrance, usamos el centro
+        -- geométrico de las partes del propio plot.
+        local parts = {}
+
+        for _, obj in ipairs(bestContainer:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                table.insert(parts, obj)
+            end
+        end
+
+        if #parts > 0 then
+            local sum = Vector3.zero
+
+            for _, part in ipairs(parts) do
+                sum += part.Position
+            end
+
+            local center = sum / #parts
+            return CFrame.new(center + Vector3.new(0, 3, 0))
         end
     end
 
-    -- Tercer intento: RespawnLocation oficial de Roblox.
-    local respawnLocation = LocalPlayer.RespawnLocation
-
-    if respawnLocation and respawnLocation:IsA("SpawnLocation") then
-        return respawnLocation.CFrame + Vector3.new(0, 3, 0)
-    end
-
-    -- Último respaldo.
+    -- IMPORTANTE:
+    -- NO hacemos fallback a SpawnLocation ni RespawnLocation.
+    -- Si no encontramos "My Plot", no hacemos TP a un spawn incorrecto.
     return nil
 end
 
