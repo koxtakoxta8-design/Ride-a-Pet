@@ -381,97 +381,245 @@ end
 
 
 --==============================================================
--- BUSCAR MI PLOT • MEJORADO
+-- BUSCAR MI PLOT POR OWNER • ROBUSTO
 --==============================================================
 
+local function ownerCoincide(valor)
+
+    if valor == nil then
+        return false
+    end
+
+    -- ObjectValue / referencia directa al jugador
+    if typeof(valor) == "Instance" then
+        return valor == player
+    end
+
+    local texto = tostring(valor)
+
+    return texto == player.Name
+        or texto == player.DisplayName
+        or texto == tostring(player.UserId)
+end
+
+
+local function objetoTieneMiOwner(obj)
+
+    -- Atributos Owner / Player / UserId
+    for _,atributo in ipairs({
+        "Owner",
+        "OwnerName",
+        "Player",
+        "PlayerName",
+        "Username",
+        "UserName",
+        "UserId",
+        "OwnerUserId",
+    }) do
+
+        local valor = obj:GetAttribute(atributo)
+
+        if ownerCoincide(valor) then
+            return true
+        end
+    end
+
+    -- Values
+    for _,v in ipairs(obj:GetChildren()) do
+
+        if v:IsA("ObjectValue") then
+
+            if v.Value == player then
+                return true
+            end
+
+        elseif v:IsA("StringValue") then
+
+            if ownerCoincide(v.Value) then
+                return true
+            end
+
+        elseif v:IsA("IntValue")
+        or v:IsA("NumberValue") then
+
+            if ownerCoincide(v.Value) then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+
 local function buscarMiPlot()
+
     local posiblesContenedores = {
         workspace:FindFirstChild("Plots"),
         workspace:FindFirstChild("plots"),
         workspace:FindFirstChild("Bases"),
         workspace:FindFirstChild("bases"),
+        workspace:FindFirstChild("BasesFolder"),
+        workspace:FindFirstChild("PlotFolder"),
     }
 
-    for _, plots in ipairs(posiblesContenedores) do
-        if plots then
-            for _, plot in ipairs(plots:GetChildren()) do
-                for _, atributo in ipairs({
-                    "Owner", "OwnerName", "Player", "PlayerName",
-                    "Username", "UserName", "UserId", "OwnerUserId",
-                }) do
-                    local valor = plot:GetAttribute(atributo)
-                    if valor ~= nil then
-                        if tostring(valor) == player.Name
-                        or tostring(valor) == player.DisplayName
-                        or tostring(valor) == tostring(player.UserId) then
-                            return plot
-                        end
-                    end
+    --==========================================================
+    -- 1. BUSCAR DIRECTAMENTE ENTRE LOS PLOTS
+    --==========================================================
+
+    for _,contenedor in ipairs(posiblesContenedores) do
+
+        if contenedor then
+
+            for _,plot in ipairs(contenedor:GetChildren()) do
+
+                if objetoTieneMiOwner(plot) then
+                    return plot
                 end
 
-                for _, obj in ipairs(plot:GetDescendants()) do
-                    if obj:IsA("StringValue") then
-                        local valor = tostring(obj.Value)
-                        if valor == player.Name
-                        or valor == player.DisplayName
-                        or valor == tostring(player.UserId) then
-                            return plot
-                        end
-                    elseif obj:IsA("ObjectValue") then
-                        if obj.Value == player then
-                            return plot
-                        end
-                    elseif obj:IsA("IntValue") or obj:IsA("NumberValue") then
-                        if tostring(obj.Value) == tostring(player.UserId) then
-                            return plot
-                        end
-                    end
-                end
+                for _,obj in ipairs(plot:GetDescendants()) do
 
-                for _, obj in ipairs(plot:GetDescendants()) do
-                    if obj:IsA("Model") then
-                        if obj.Name == player.Name or obj.Name == player.DisplayName then
-                            return plot
-                        end
+                    if objetoTieneMiOwner(obj) then
+                        return plot
+                    end
+
+                    if obj:IsA("Model")
+                    and (obj.Name == player.Name
+                    or obj.Name == player.DisplayName) then
+                        return plot
                     end
                 end
             end
         end
     end
+
+    --==========================================================
+    -- 2. BUSCAR OWNER EN TODO WORKSPACE
+    --==========================================================
+
+    for _,obj in ipairs(workspace:GetDescendants()) do
+
+        if objetoTieneMiOwner(obj) then
+
+            -- Subir hasta encontrar un Model o Folder que parezca plot/base
+            local actual = obj
+            local mejorCandidato = nil
+
+            for _ = 1,8 do
+
+                if not actual then
+                    break
+                end
+
+                if actual:IsA("Model") or actual:IsA("Folder") then
+                    mejorCandidato = actual
+                end
+
+                local nombre = string.lower(actual.Name)
+
+                if nombre:find("plot",1,true)
+                or nombre:find("base",1,true)
+                or nombre:find("island",1,true)
+                or nombre:find("house",1,true)
+                or nombre:find("home",1,true) then
+                    mejorCandidato = actual
+                    break
+                end
+
+                actual = actual.Parent
+            end
+
+            if mejorCandidato then
+                return mejorCandidato
+            end
+        end
+    end
+
     return nil
 end
 
+
 --==============================================================
--- BUSCAR SPAWN DE MI PLOT • MEJORADO
+-- BUSCAR SPAWN DE MI PLOT • OWNER + SPAWN
 --==============================================================
 
 local function encontrarSpawn(plot)
+
     if not plot then
         return nil
     end
 
     local nombresSpawn = {
-        "Spawn", "PlotSpawn", "SpawnLocation", "Respawn",
-        "PlayerSpawn", "HomeSpawn", "BaseSpawn",
+        "Spawn",
+        "PlotSpawn",
+        "SpawnLocation",
+        "Respawn",
+        "PlayerSpawn",
+        "HomeSpawn",
+        "BaseSpawn",
+        "SpawnPoint",
+        "SpawnPart",
+        "SpawnLocationPart",
     }
 
-    for _, nombre in ipairs(nombresSpawn) do
+    --==========================================================
+    -- 1. NOMBRES EXACTOS
+    --==========================================================
+
+    for _,nombre in ipairs(nombresSpawn) do
+
         local obj = plot:FindFirstChild(nombre, true)
+
         if obj and obj:IsA("BasePart") then
             return obj
         end
     end
 
-    for _, obj in ipairs(plot:GetDescendants()) do
+    --==========================================================
+    -- 2. SPAWNLOCATION
+    --==========================================================
+
+    for _,obj in ipairs(plot:GetDescendants()) do
+
         if obj:IsA("SpawnLocation") then
             return obj
         end
     end
 
-    for _, obj in ipairs(plot:GetDescendants()) do
+    --==========================================================
+    -- 3. CUALQUIER PARTE CON SPAWN/RESPAWN
+    --==========================================================
+
+    for _,obj in ipairs(plot:GetDescendants()) do
+
         if obj:IsA("BasePart") then
-            local nombre = obj.Name:lower()
-            if nombre:find("spawn", 1, true) or nombre:find("respawn", 1, true) then
+
+            local nombre = string.lower(obj.Name)
+
+            if nombre:find("spawn",1,true)
+            or nombre:find("respawn",1,true) then
+
+                return obj
+            end
+        end
+    end
+
+    --==========================================================
+    -- 4. BUSCAR PARTES DE HOME/BASE/TELEPORT
+    --    SOLO COMO RESPALDO DENTRO DEL PLOT DEL OWNER
+    --==========================================================
+
+    for _,obj in ipairs(plot:GetDescendants()) do
+
+        if obj:IsA("BasePart") then
+
+            local nombre = string.lower(obj.Name)
+
+            if nombre:find("home",1,true)
+            or nombre:find("base",1,true)
+            or nombre:find("teleport",1,true)
+            or nombre:find("tp",1,true) then
+
                 return obj
             end
         end
@@ -479,6 +627,7 @@ local function encontrarSpawn(plot)
 
     return nil
 end
+
 
 --==============================================================
 -- BUSCAR PROMPT
