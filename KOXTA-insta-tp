@@ -1351,23 +1351,43 @@ local function UpdateUI()
 
     if BestEgg and BestEgg.Parent then
 
-        local data =
-            GetEggData(BestEgg.Name)
+        -- IMPORTANTE:
+        -- El panel ya NO depende de que el huevo esté en EggData.
+        -- Por eso los huevos nuevos/desconocidos también aparecen.
+        local data = GetEggData(BestEgg.Name)
 
-        if data then
+        local luckText = "N/A"
 
-            EggText.Text =
-                "🥚  MEJOR HUEVO\n"
-                .. BestEgg.Name
-                .. "   •   🍀 Lucky: "
-                .. data.Luck
+        if data and data.Luck then
+            luckText = tostring(data.Luck)
+        else
+            local liveLuck = GetLiveEggLuck(BestEgg)
 
+            if liveLuck then
+                luckText = tostring(liveLuck)
+            end
+        end
+
+        EggText.Text =
+            "🥚  MEJOR HUEVO\n"
+            .. tostring(BestEgg.Name)
+            .. "   •   🍀 Lucky: "
+            .. luckText
+
+        -- Mantener el objetivo visible con el mismo huevo real.
+        if TargetLabel then
+            TargetLabel.Text =
+                "🎯 OBJETIVO: " .. tostring(BestEgg.Name)
         end
 
     else
 
         EggText.Text =
             "🥚  MEJOR HUEVO\nBuscando..."
+
+        if TargetLabel then
+            TargetLabel.Text = "🎯 OBJETIVO: Buscando..."
+        end
 
     end
 
