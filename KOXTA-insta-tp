@@ -665,93 +665,108 @@ local function CaptureCurrentRanchSpawn(character)
 end
 
 local function FindRanchDeliveryPoint()
-    -- El respawn aprendido sirve como ancla para encontrar el plot
-    -- correcto de ESTE servidor. Luego buscamos dentro de esa zona
-    -- el punto donde realmente se entrega el huevo.
+
+    -- Este punto SOLO puede ser un punto de entrega/nido.
+    -- JAMÁS se debe escoger un huevo como destino de regreso.
     if not RanchRespawnCFrame then
         return nil
     end
 
     local anchor = RanchRespawnCFrame.Position
     local bestPrompt = nil
-    local bestScore = -1
+    local bestScore = -math.huge
 
     for _, obj in ipairs(Workspace:GetDescendants()) do
+
         if obj:IsA("ProximityPrompt") and obj.Parent then
 
             local part = obj.Parent
+
             if not part:IsA("BasePart") then
                 part = obj:FindFirstAncestorWhichIsA("BasePart")
             end
 
             if part then
-                local distance = (part.Position - anchor).Magnitude
 
-                -- Solo considera prompts del entorno del rancho.
+                local distance =
+                    (part.Position - anchor).Magnitude
+
                 if distance <= 180 then
 
-                    local text = string.lower(
-                        tostring(obj.ActionText) .. " "
-                        .. tostring(obj.ObjectText) .. " "
-                        .. tostring(part.Name)
-                    )
+                    local text =
+                        string.lower(
+                            tostring(obj.ActionText) .. " "
+                            .. tostring(obj.ObjectText) .. " "
+                            .. tostring(part.Name)
+                        )
 
-                    local score = 0
-
-                    -- Prioridad al punto de colocar/entregar huevos.
-                    if string.find(text, "place", 1, true)
-                        or string.find(text, "poner", 1, true)
-                        or string.find(text, "colocar", 1, true)
-                        or string.find(text, "deposit", 1, true)
-                        or string.find(text, "deliver", 1, true)
-                    then
-                        score += 100
-                    end
-
-                    if string.find(text, "egg", 1, true)
+                    -- =================================================
+                    -- BLOQUEO ABSOLUTO DE HUEVOS
+                    -- =================================================
+                    local isEgg =
+                        string.find(text, "egg", 1, true)
                         or string.find(text, "huevo", 1, true)
-                    then
-                        score += 80
-                    end
 
-                    if string.find(text, "nest", 1, true)
-                        or string.find(text, "nido", 1, true)
-                    then
-                        score += 70
-                    end
+                    local isGrab =
+                        string.find(text, "grab", 1, true)
+                        or string.find(text, "pick", 1, true)
+                        or string.find(text, "collect", 1, true)
+                        or string.find(text, "recoger", 1, true)
+                        or string.find(text, "agarrar", 1, true)
+                        or string.find(text, "tomar", 1, true)
 
-                    -- También reconoce nombres de partes del nido.
-                    local partName = string.lower(tostring(part.Name))
-                    if string.find(partName, "nest", 1, true)
-                        or string.find(partName, "nido", 1, true)
-                    then
-                        score += 50
-                    end
+                    -- Si parece huevo o es un prompt para agarrarlo,
+                    -- NO puede ser destino de regreso.
+                    if not isEgg and not isGrab then
 
-                    -- No elegir prompts de tiendas/otros servicios.
-                    if string.find(text, "shop", 1, true)
-                        or string.find(text, "buy", 1, true)
-                        or string.find(text, "sell", 1, true)
-                    then
-                        score -= 100
-                    end
+                        local score = 0
 
-                    -- Más cerca = ligeramente mejor.
-                    score -= distance * 0.05
+                        local isDelivery =
+                            string.find(text, "place", 1, true)
+                            or string.find(text, "put", 1, true)
+                            or string.find(text, "poner", 1, true)
+                            or string.find(text, "colocar", 1, true)
+                            or string.find(text, "deposit", 1, true)
+                            or string.find(text, "deliver", 1, true)
+                            or string.find(text, "entregar", 1, true)
 
-                    if score > bestScore then
-                        bestScore = score
-                        bestPrompt = part
+                        local isNest =
+                            string.find(text, "nest", 1, true)
+                            or string.find(text, "nido", 1, true)
+
+                        if isDelivery then
+                            score += 200
+                        end
+
+                        if isNest then
+                            score += 150
+                        end
+
+                        -- Si no tiene ninguna señal de entrega/nido,
+                        -- no lo usamos como destino.
+                        if not isDelivery and not isNest then
+                            score = -math.huge
+                        end
+
+                        score -= distance * 0.05
+
+                        if score > bestScore then
+                            bestScore = score
+                            bestPrompt = part
+                        end
+
                     end
                 end
             end
         end
     end
 
-    if bestPrompt and bestScore >= 30 then
+    if bestPrompt and bestScore > 0 then
         return bestPrompt.CFrame + Vector3.new(0, 3, 0)
     end
 
+    -- Si no encontramos un nido/entrega inequívoco, NO arriesgarse
+    -- a ir a otro objeto. ReturnSpawn() usará SavedSpawnCFrame.
     return nil
 end
 
@@ -797,9 +812,16 @@ if LocalPlayer.Character then
 end
 
 local function SaveSpawn()
-    -- Ya no guarda la posición donde estaba el jugador.
-    -- Guarda el CFrame del respawn real del jugador.
-    SavedSpawnCFrame = GetRespawnCFrame()
+
+    -- Guardar la BASE real del jugador, no la posición del huevo
+    -- ni una posición temporal del personaje.
+    local ranch = GetRespawnCFrame()
+
+    if ranch then
+        RanchRespawnCFrame = ranch
+        SavedSpawnCFrame = ranch
+    end
+
 end
 
 --==============================================================
@@ -867,15 +889,14 @@ local function ReturnSpawn()
         return false
     end
 
-    -- IMPORTANTE:
-    -- No recalcular BestEgg ni buscar otro huevo durante el regreso.
-    -- Primero intentamos usar el punto de entrega del RANCHO aprendido
-    -- para este servidor. Si no existe, usamos el respawn del mismo rancho.
-    local targetCFrame = FindRanchDeliveryPoint()
-
-    if not targetCFrame then
-        targetCFrame = SavedSpawnCFrame
-    end
+    -- =========================================================
+    -- DESTINO: BASE / RANCHO DEL JUGADOR
+    -- =========================================================
+    -- Usar directamente el respawn que el juego asignó al jugador
+    -- en este servidor. No buscar huevos, nidos ni otro spawn.
+    local targetCFrame =
+        RanchRespawnCFrame
+        or SavedSpawnCFrame
 
     if not targetCFrame then
         return false
@@ -883,19 +904,17 @@ local function ReturnSpawn()
 
     local targetPosition = targetCFrame.Position
 
-    -- Protección contra el spawn central.
+    -- Nunca permitir que el regreso termine en el spawn central.
     if (targetPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
         return false
     end
 
-    -- Congelar el objetivo de regreso antes de mover al personaje.
-    -- Así ningún cambio de BestEgg puede modificar este TP.
+    -- TP directo a la BASE.
     root.CFrame = targetCFrame
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
 
-    -- Esperar un frame y reafirmar la misma posición.
-    -- No se hace ningún RefreshBestEgg aquí.
+    -- Reafirmar el mismo destino un frame después.
     task.wait()
 
     if root.Parent then
