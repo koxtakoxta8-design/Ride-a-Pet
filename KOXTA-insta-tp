@@ -352,6 +352,10 @@ end
 
 local EggCache = EggCache or {}
 
+-- Huevos temporalmente procesados. Se vuelven a detectar si el
+-- mismo objeto cambia de posición después de ser soltado.
+local HeldEggs = {}
+
 local KnownEggNames = {
     ["white egg"] = true,
     ["brown egg"] = true,
@@ -506,6 +510,42 @@ end
 --==============================================================
 -- BUSCAR MEJOR HUEVO
 --==============================================================
+
+--==============================================================
+-- REDETECCIÓN DE HUEVOS SOLTADOS
+--==============================================================
+-- Solo vigila los huevos que acabamos de procesar. No vuelve a
+-- escanear todo Workspace, por lo que no recupera los lagazos.
+
+task.spawn(function()
+    while task.wait(0.25) do
+
+        for egg, info in pairs(HeldEggs) do
+
+            if not egg or not egg.Parent then
+                HeldEggs[egg] = nil
+
+            else
+                local position = GetPosition(egg)
+
+                if position and info.position then
+
+                    local moved =
+                        (position - info.position).Magnitude
+
+                    -- Si el mismo huevo cambió de lugar después de
+                    -- haber sido soltado, vuelve al detector.
+                    if moved >= 2 then
+
+                        HeldEggs[egg] = nil
+                        EggCache[egg] = true
+
+                    end
+                end
+            end
+        end
+    end
+end)
 
 local function RefreshBestEgg()
 
@@ -1627,7 +1667,15 @@ local function DoCycle()
 
     -- El huevo ya fue procesado. Sacarlo inmediatamente de la caché
     -- evita que, al llegar al rancho, vuelva a ser elegido.
+    -- No lo destruimos de forma permanente: lo marcamos como
+    -- "procesado/en mano". Si el jugador lo suelta y el objeto
+    -- cambia de posición, volverá a entrar al detector.
     EggCache[egg] = nil
+    HeldEggs[egg] = {
+        position = GetPosition(egg),
+        time = os.clock()
+    }
+
     if BestEgg == egg then
         BestEgg = nil
         BestLuck = 0
