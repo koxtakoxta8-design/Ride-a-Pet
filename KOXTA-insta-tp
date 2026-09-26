@@ -47,6 +47,9 @@ local BestLuck = 0
 -- Evita que el refresco seleccione de nuevo el huevo que se está procesando.
 local CycleBusy = false
 
+local CycleState = "IDLE"
+-- IDLE -> SEARCHING -> GOING_TO_EGG -> GRABBING -> RETURNING -> IDLE
+
 local ReturningToRanch = false
 
 --==============================================================
@@ -552,6 +555,10 @@ end)
 local function RefreshBestEgg()
 
     if CycleBusy or ReturningToRanch then
+        return BestEgg
+    end
+
+    if CycleState ~= "IDLE" and CycleState ~= "SEARCHING" then
         return BestEgg
     end
 
@@ -1640,55 +1647,70 @@ local function DoCycle()
         return
     end
 
+    -- =========================================================
+    -- 1. BUSCAR
+    -- =========================================================
+    CycleState = "SEARCHING"
+    Status.Text = "● BUSCANDO HUEVOS"
+
     RefreshBestEgg()
     UpdateUI()
 
     local egg = BestEgg
 
-    if not egg then
-        Status.Text = "● SIN HUEVO"
+    if not egg or not egg.Parent then
+        CycleState = "IDLE"
+        Status.Text = "● BUSCANDO HUEVOS"
         return
     end
 
-    -- Bloquear el selector mientras este huevo está siendo procesado.
-    -- Así el refresco no puede volver a seleccionarlo cuando ya fue
-    -- llevado al rancho.
+    -- Congelar ESTE objetivo. No se cambia hasta terminar todo
+    -- el ciclo completo.
     CycleBusy = true
+    CycleState = "GOING_TO_EGG"
 
-    Status.Text = "● TELEPORT"
+    Status.Text = "● YENDO AL MEJOR HUEVO"
+    UpdateUI()
 
+    -- =========================================================
+    -- 2. TP AL HUEVO ELEGIDO
+    -- =========================================================
     if not TeleportToEgg(egg) then
         CycleBusy = false
+        CycleState = "IDLE"
+        Status.Text = "● BUSCANDO HUEVOS"
         return
     end
 
-    -- Se congela inmediatamente después del TP; no hay ventana de movimiento.
     Freeze()
 
     if not InstaTP then
         CycleBusy = false
+        CycleState = "IDLE"
         Unfreeze()
         return
     end
 
-    Status.Text = "● AUTO GRAB"
+    -- =========================================================
+    -- 3. AGARRAR
+    -- =========================================================
+    CycleState = "GRABBING"
+    Status.Text = "● AGARRANDO"
 
-    -- Primero intenta agarrar el huevo.
     local grabbed = AutoGrab(egg)
 
     if not grabbed then
         CycleBusy = false
-        Status.Text = "● NO SE PUDO AGARRAR"
+        CycleState = "IDLE"
+        Status.Text = "● BUSCANDO HUEVOS"
         Unfreeze()
         return
     end
 
-    -- El huevo ya fue procesado. Sacarlo inmediatamente de la caché
-    -- evita que, al llegar al rancho, vuelva a ser elegido.
-    -- No lo destruimos de forma permanente: lo marcamos como
-    -- "procesado/en mano". Si el jugador lo suelta y el objeto
-    -- cambia de posición, volverá a entrar al detector.
+    -- Marcar el huevo procesado. Puede volver a detectarse si
+    -- posteriormente se suelta y cambia de posición.
     EggCache[egg] = nil
+
     HeldEggs[egg] = {
         position = GetPosition(egg),
         time = os.clock()
@@ -1699,43 +1721,57 @@ local function DoCycle()
         BestLuck = 0
     end
 
-    -- Espera breve para que termine el agarre antes de regresar.
-    task.wait(0.25)
-
-    if not InstaTP then
-        Unfreeze()
-        return
-    end
-
-    -- Secuencia: TP al mejor huevo → agarrar → TP al spawn guardado.
-    Status.Text = "● RETURN"
-
-    -- Primero libera el bloqueo del huevo.
-    StopEggLock()
-
-    -- Bloquear cualquier nueva selección mientras se completa el regreso.
+    -- =========================================================
+    -- 4. REGRESAR AL RANCHO
+    -- =========================================================
+    CycleState = "RETURNING"
     ReturningToRanch = true
 
-    -- Después hace obligatoriamente el TP al rancho guardado.
+    Status.Text = "● REGRESANDO AL RANCHO"
+
+    StopEggLock()
+
+    -- IMPORTANTE: aquí NO se llama RefreshBestEgg().
+    -- El objetivo queda bloqueado hasta completar el regreso.
     local returned = ReturnSpawn()
+
+    task.wait(0.25)
+
+    -- Confirmar que seguimos en la fase de regreso antes de
+    -- desbloquear cualquier búsqueda.
+    Unfreeze()
 
     ReturningToRanch = false
 
-    task.wait(0.15)
+    if not returned then
+        CycleState = "IDLE"
+        CycleBusy = false
+        Status.Text = "● NO SE ENCONTRÓ EL RANCHO"
+        return
+    end
 
-    Unfreeze()
-
-    Status.Text =
-        returned and (LOP and "● LOOP ACTIVE" or "● READY")
-        or "● SPAWN NO GUARDADO"
-
-    -- Solo ahora permitimos que el detector seleccione otro huevo.
+    -- =========================================================
+    -- 5. RECIÉN AQUÍ TERMINÓ EL CICLO
+    -- =========================================================
+    CycleState = "IDLE"
     CycleBusy = false
 
-    -- Recalcular después de haber dejado el huevo procesado fuera
-    -- de la caché.
-    if InstaTP then
-        RefreshBestEgg()
+    Status.Text = LOP and "● LOOP ACTIVE" or "● READY"
+
+    -- Ahora sí puede buscar OTRO huevo.
+    if InstaTP and LOP then
+        task.wait(0.35)
+
+        if InstaTP and LOP and not ReturningToRanch then
+            CycleState = "SEARCHING"
+            Status.Text = "● BUSCANDO HUEVOS"
+
+            RefreshBestEgg()
+            UpdateUI()
+
+            CycleState = "IDLE"
+        end
+    else
         UpdateUI()
     end
 
