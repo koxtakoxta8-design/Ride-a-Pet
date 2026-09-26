@@ -1,59 +1,61 @@
 --==============================================================
--- KOXTA HUB • AUTO STEAL + ULTRA TP
--- BLACK EDITION
--- TP A TU PLOT • AUTO STEAL
+-- AUTO STEAL • ULTRA TP
+-- BEST EGG SERVER + FREEZE + GRAB + TP A TU PLOT
 --==============================================================
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
 local player = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
 
 --==============================================================
 -- CONFIG
 --==============================================================
 
-local AutoSteal = false
-local Working = false
+local AUTO_STEAL = false
+local BUSY = false
 
---==============================================================
--- LIMPIAR GUI ANTERIOR
---==============================================================
-
-local old = CoreGui:FindFirstChild("KOXTA_HUB_AUTO_STEAL")
-
-if old then
-    old:Destroy()
-end
+local SEARCH_RADIUS = 100000
+local HEIGHT_OFFSET = 4
 
 --==============================================================
 -- GUI
 --==============================================================
 
+local CoreGui = game:GetService("CoreGui")
+
+local old = CoreGui:FindFirstChild("KoxtaAutoSteal")
+if old then
+    old:Destroy()
+end
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "KOXTA_HUB_AUTO_STEAL"
+gui.Name = "KoxtaAutoSteal"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0,300,0,190)
-panel.Position = UDim2.new(0.5,-150,0.5,-95)
+panel.Size = UDim2.new(0,285,0,210)
+panel.Position = UDim2.new(0.5,-142,0.5,-105)
 panel.BackgroundColor3 = Color3.fromRGB(8,8,8)
 panel.BorderSizePixel = 0
 panel.Parent = gui
 
-Instance.new("UICorner",panel).CornerRadius = UDim.new(0,16)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,16)
+corner.Parent = panel
 
-local panelStroke = Instance.new("UIStroke")
-panelStroke.Color = Color3.fromRGB(255,255,255)
-panelStroke.Thickness = 1.5
-panelStroke.Parent = panel
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255,255,255)
+stroke.Thickness = 1.5
+stroke.Parent = panel
 
 --==============================================================
 -- TITULO
 --==============================================================
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,40)
+title.Size = UDim2.new(1,0,0,42)
 title.BackgroundTransparency = 1
 title.Text = "KOXTA HUB • BLACK EDITION"
 title.TextColor3 = Color3.fromRGB(255,255,255)
@@ -66,10 +68,10 @@ title.Parent = panel
 --==============================================================
 
 local status = Instance.new("TextLabel")
-status.Size = UDim2.new(1,-20,0,30)
-status.Position = UDim2.new(0,10,0,40)
+status.Size = UDim2.new(1,-20,0,32)
+status.Position = UDim2.new(0,10,0,42)
 status.BackgroundTransparency = 1
-status.Text = "STATUS: READY"
+status.Text = "STATUS: IDLE"
 status.TextColor3 = Color3.fromRGB(0,255,140)
 status.Font = Enum.Font.Gotham
 status.TextSize = 13
@@ -79,17 +81,17 @@ status.Parent = panel
 -- AUTO STEAL
 --==============================================================
 
-local autoButton = Instance.new("TextButton")
-autoButton.Size = UDim2.new(1,-20,0,45)
-autoButton.Position = UDim2.new(0,10,0,75)
-autoButton.BackgroundColor3 = Color3.fromRGB(20,20,20)
-autoButton.Text = "AUTO STEAL : OFF"
-autoButton.TextColor3 = Color3.fromRGB(255,70,70)
-autoButton.Font = Enum.Font.GothamBold
-autoButton.TextSize = 15
-autoButton.Parent = panel
+local stealButton = Instance.new("TextButton")
+stealButton.Size = UDim2.new(1,-20,0,45)
+stealButton.Position = UDim2.new(0,10,0,78)
+stealButton.BackgroundColor3 = Color3.fromRGB(20,20,20)
+stealButton.Text = "AUTO STEAL : OFF"
+stealButton.TextColor3 = Color3.fromRGB(255,80,80)
+stealButton.Font = Enum.Font.GothamBold
+stealButton.TextSize = 15
+stealButton.Parent = panel
 
-Instance.new("UICorner",autoButton).CornerRadius = UDim.new(0,10)
+Instance.new("UICorner",stealButton).CornerRadius = UDim.new(0,10)
 
 --==============================================================
 -- ULTRA TP
@@ -99,7 +101,7 @@ local tpButton = Instance.new("TextButton")
 tpButton.Size = UDim2.new(1,-20,0,45)
 tpButton.Position = UDim2.new(0,10,0,130)
 tpButton.BackgroundColor3 = Color3.fromRGB(20,20,20)
-tpButton.Text = "⚡ ULTRA TP"
+tpButton.Text = "⚡ ULTRA TP A MI PLOT"
 tpButton.TextColor3 = Color3.fromRGB(0,255,140)
 tpButton.Font = Enum.Font.GothamBold
 tpButton.TextSize = 15
@@ -108,18 +110,121 @@ tpButton.Parent = panel
 Instance.new("UICorner",tpButton).CornerRadius = UDim.new(0,10)
 
 --==============================================================
+-- CLOSE
+--==============================================================
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0,30,0,30)
+close.Position = UDim2.new(1,-35,0,6)
+close.BackgroundTransparency = 1
+close.Text = "×"
+close.TextColor3 = Color3.fromRGB(255,80,80)
+close.TextSize = 22
+close.Font = Enum.Font.GothamBold
+close.Parent = panel
+
+close.MouseButton1Click:Connect(function()
+    AUTO_STEAL = false
+    gui:Destroy()
+end)
+
+--==============================================================
 -- PERSONAJE
 --==============================================================
 
-local function getRoot()
+local function getCharacter()
 
     local character = player.Character
 
     if not character then
-        return nil
+        return nil,nil
     end
 
-    return character:FindFirstChild("HumanoidRootPart")
+    local root = character:FindFirstChild("HumanoidRootPart")
+
+    if not root then
+        return character,nil
+    end
+
+    return character,root
+end
+
+--==============================================================
+-- CONGELAR PERSONAJE
+--==============================================================
+
+local savedFreeze = {}
+
+local function freezeCharacter()
+
+    local character,root = getCharacter()
+
+    if not character or not root then
+        return false
+    end
+
+    savedFreeze = {}
+
+    for _,obj in ipairs(character:GetDescendants()) do
+
+        if obj:IsA("BasePart") then
+
+            savedFreeze[obj] = {
+                Anchored = obj.Anchored,
+                CanCollide = obj.CanCollide
+            }
+
+            obj.Anchored = true
+        end
+    end
+
+    return true
+end
+
+local function unfreezeCharacter()
+
+    for obj,data in pairs(savedFreeze) do
+
+        if obj and obj.Parent then
+            obj.Anchored = data.Anchored
+            obj.CanCollide = data.CanCollide
+        end
+    end
+
+    savedFreeze = {}
+end
+
+--==============================================================
+-- PLOTS
+--==============================================================
+
+local function obtenerPlots()
+
+    return workspace:FindFirstChild("Plots")
+        or workspace:FindFirstChild("plots")
+        or workspace:FindFirstChild("Bases")
+        or workspace:FindFirstChild("bases")
+end
+
+local function esMiValor(valor)
+
+    if valor == player then
+        return true
+    end
+
+    if valor == player.Name then
+        return true
+    end
+
+    if valor == player.DisplayName then
+        return true
+    end
+
+    if tostring(valor) == tostring(player.UserId) then
+        return true
+    end
+
+    return false
 end
 
 --==============================================================
@@ -128,113 +233,50 @@ end
 
 local function buscarMiPlot()
 
-    local contenedores = {
-        workspace:FindFirstChild("Plots"),
-        workspace:FindFirstChild("plots"),
-        workspace:FindFirstChild("Bases"),
-        workspace:FindFirstChild("bases"),
-    }
+    local plots = obtenerPlots()
 
-    for _, contenedor in ipairs(contenedores) do
+    if not plots then
+        return nil
+    end
 
-        if contenedor then
+    for _,plot in ipairs(plots:GetChildren()) do
 
-            for _, plot in ipairs(contenedor:GetChildren()) do
+        -- Attributes
+        for nombre,valor in pairs(plot:GetAttributes()) do
 
-                --==================================================
-                -- ATRIBUTOS
-                --==================================================
+            local n = string.lower(tostring(nombre))
 
-                local atributos = {
-                    "Owner",
-                    "OwnerName",
-                    "Player",
-                    "PlayerName",
-                    "Username",
-                    "UserName",
-                    "UserId",
-                    "OwnerUserId",
-                    "OwnerId",
-                }
+            if n:find("owner")
+            or n:find("player")
+            or n:find("user") then
 
-                for _, atributo in ipairs(atributos) do
-
-                    local valor = plot:GetAttribute(atributo)
-
-                    if valor ~= nil then
-
-                        local texto = tostring(valor)
-
-                        if texto == player.Name
-                        or texto == player.DisplayName
-                        or texto == tostring(player.UserId) then
-
-                            return plot
-                        end
-                    end
-                end
-
-                --==================================================
-                -- VALUES
-                --==================================================
-
-                for _, obj in ipairs(plot:GetDescendants()) do
-
-                    if obj:IsA("StringValue") then
-
-                        local valor = tostring(obj.Value)
-
-                        if valor == player.Name
-                        or valor == player.DisplayName
-                        or valor == tostring(player.UserId) then
-
-                            return plot
-                        end
-
-                    elseif obj:IsA("ObjectValue") then
-
-                        if obj.Value == player then
-                            return plot
-                        end
-
-                    elseif obj:IsA("IntValue")
-                    or obj:IsA("NumberValue") then
-
-                        if tostring(obj.Value) == tostring(player.UserId) then
-                            return plot
-                        end
-                    end
-                end
-
-                --==================================================
-                -- MODELO CON TU NOMBRE
-                --==================================================
-
-                for _, obj in ipairs(plot:GetDescendants()) do
-
-                    if obj:IsA("Model") then
-
-                        if obj.Name == player.Name
-                        or obj.Name == player.DisplayName then
-
-                            return plot
-                        end
-                    end
-                end
-
-                --==================================================
-                -- NOMBRE DEL PLOT
-                --==================================================
-
-                local nombrePlot = plot.Name:lower()
-
-                local nombreJugador = player.Name:lower()
-                local displayJugador = player.DisplayName:lower()
-
-                if nombrePlot:find(nombreJugador,1,true)
-                or nombrePlot:find(displayJugador,1,true) then
-
+                if esMiValor(valor) then
                     return plot
+                end
+            end
+        end
+
+        -- Values
+        for _,obj in ipairs(plot:GetDescendants()) do
+
+            if obj:IsA("StringValue")
+            or obj:IsA("ObjectValue")
+            or obj:IsA("IntValue")
+            or obj:IsA("NumberValue") then
+
+                local nombre = string.lower(obj.Name)
+
+                if nombre:find("owner")
+                or nombre:find("player")
+                or nombre:find("user") then
+
+                    local ok,valor = pcall(function()
+                        return obj.Value
+                    end)
+
+                    if ok and esMiValor(valor) then
+                        return plot
+                    end
                 end
             end
         end
@@ -244,7 +286,7 @@ local function buscarMiPlot()
 end
 
 --==============================================================
--- BUSCAR SPAWN DEL PLOT
+-- SPAWN DEL PLOT
 --==============================================================
 
 local function encontrarSpawn(plot)
@@ -253,47 +295,31 @@ local function encontrarSpawn(plot)
         return nil
     end
 
-    -- Nombres conocidos
-    local nombres = {
-        "Spawn",
-        "PlotSpawn",
-        "SpawnLocation",
-        "Respawn",
-        "PlayerSpawn",
-        "HomeSpawn",
-        "BaseSpawn",
-        "SpawnPoint",
-        "SpawnPart",
-    }
-
-    -- Buscar por nombre
-    for _, nombre in ipairs(nombres) do
-
-        local obj = plot:FindFirstChild(nombre,true)
-
-        if obj and obj:IsA("BasePart") then
-            return obj
-        end
-    end
-
-    -- SpawnLocation
-    for _, obj in ipairs(plot:GetDescendants()) do
+    -- SpawnLocation real
+    for _,obj in ipairs(plot:GetDescendants()) do
 
         if obj:IsA("SpawnLocation") then
             return obj
         end
     end
 
-    -- Cualquier parte que tenga spawn/respawn
-    for _, obj in ipairs(plot:GetDescendants()) do
+    -- Spawn por nombre
+    local nombres = {
+        spawn = true,
+        plotspawn = true,
+        spawnlocation = true,
+        respawn = true,
+        respawnpoint = true,
+        homespawn = true
+    }
+
+    for _,obj in ipairs(plot:GetDescendants()) do
 
         if obj:IsA("BasePart") then
 
-            local nombre = obj.Name:lower()
+            local nombre = string.lower(obj.Name)
 
-            if nombre:find("spawn",1,true)
-            or nombre:find("respawn",1,true) then
-
+            if nombres[nombre] then
                 return obj
             end
         end
@@ -303,67 +329,203 @@ local function encontrarSpawn(plot)
 end
 
 --==============================================================
--- TP A MI PLOT
+-- ULTRA TP A MI PLOT
 --==============================================================
 
-local function TP_MiPlot()
+local function UltraTP()
 
-    local root = getRoot()
+    local character,root = getCharacter()
 
-    if not root then
+    if not character or not root then
         return false
     end
 
-    local miPlot = buscarMiPlot()
+    local plot = buscarMiPlot()
 
-    if not miPlot then
+    if not plot then
+        warn("ULTRA TP: no se encontró tu Plot")
         return false
     end
 
-    local spawn = encontrarSpawn(miPlot)
+    local spawn = encontrarSpawn(plot)
 
     if not spawn then
+        warn("ULTRA TP: no se encontró el Spawn")
         return false
     end
 
-    root.CFrame = spawn.CFrame + Vector3.new(0,4,0)
+    root.CFrame = spawn.CFrame + Vector3.new(0,HEIGHT_OFFSET,0)
 
     return true
 end
 
 --==============================================================
--- CONGELAR
+-- DETECTAR POSIBLES HUEVOS
 --==============================================================
 
-local function congelar(root)
+local function pareceHuevo(obj)
 
-    if not root then
-        return
+    local nombre = string.lower(obj.Name)
+
+    if nombre:find("egg")
+    or nombre:find("huevo")
+    or nombre:find("egg") then
+
+        return true
     end
 
-    root.Anchored = true
-end
-
-local function descongelar(root)
-
-    if not root then
-        return
-    end
-
-    root.Anchored = false
+    return false
 end
 
 --==============================================================
--- BUSCAR PROMPT
+-- OBTENER VALOR DEL HUEVO
 --==============================================================
 
-local function buscarPrompt(obj)
+local function obtenerValor(obj)
+
+    local mejorValor = -math.huge
+
+    -- Attributes
+    for nombre,valor in pairs(obj:GetAttributes()) do
+
+        local n = string.lower(tostring(nombre))
+
+        if n:find("value")
+        or n:find("price")
+        or n:find("rarity")
+        or n:find("luck")
+        or n:find("chance")
+        or n:find("worth") then
+
+            local numero = tonumber(valor)
+
+            if numero then
+                mejorValor = math.max(mejorValor,numero)
+            end
+        end
+    end
+
+    -- Values dentro del huevo
+    for _,v in ipairs(obj:GetDescendants()) do
+
+        if v:IsA("IntValue")
+        or v:IsA("NumberValue") then
+
+            local nombre = string.lower(v.Name)
+
+            if nombre:find("value")
+            or nombre:find("price")
+            or nombre:find("luck")
+            or nombre:find("chance")
+            or nombre:find("worth") then
+
+                mejorValor = math.max(
+                    mejorValor,
+                    tonumber(v.Value) or -math.huge
+                )
+            end
+        end
+    end
+
+    return mejorValor
+end
+
+--==============================================================
+-- BUSCAR MEJOR HUEVO
+--==============================================================
+
+local function buscarMejorHuevo()
+
+    local character,root = getCharacter()
+
+    if not root then
+        return nil
+    end
+
+    local mejor = nil
+    local mejorValor = -math.huge
+    local mejorDistancia = math.huge
+
+    for _,obj in ipairs(workspace:GetDescendants()) do
+
+        if obj:IsA("Model") or obj:IsA("BasePart") then
+
+            if pareceHuevo(obj) then
+
+                local part = nil
+
+                if obj:IsA("BasePart") then
+                    part = obj
+                else
+                    part =
+                        obj.PrimaryPart
+                        or obj:FindFirstChildWhichIsA("BasePart",true)
+                end
+
+                if part then
+
+                    local distancia =
+                        (root.Position - part.Position).Magnitude
+
+                    if distancia <= SEARCH_RADIUS then
+
+                        local valor = obtenerValor(obj)
+
+                        if valor > mejorValor then
+
+                            mejor = obj
+                            mejorValor = valor
+                            mejorDistancia = distancia
+
+                        elseif valor == mejorValor
+                        and distancia < mejorDistancia then
+
+                            mejor = obj
+                            mejorDistancia = distancia
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return mejor
+end
+
+--==============================================================
+-- PARTE PRINCIPAL DEL HUEVO
+--==============================================================
+
+local function obtenerParte(obj)
 
     if not obj then
         return nil
     end
 
-    for _, v in ipairs(obj:GetDescendants()) do
+    if obj:IsA("BasePart") then
+        return obj
+    end
+
+    if obj:IsA("Model") then
+
+        return obj.PrimaryPart
+            or obj:FindFirstChildWhichIsA("BasePart",true)
+    end
+
+    return nil
+end
+
+--==============================================================
+-- BUSCAR PROMPT DEL HUEVO
+--==============================================================
+
+local function encontrarPrompt(obj)
+
+    if not obj then
+        return nil
+    end
+
+    for _,v in ipairs(obj:GetDescendants()) do
 
         if v:IsA("ProximityPrompt") then
             return v
@@ -374,16 +536,19 @@ local function buscarPrompt(obj)
 end
 
 --==============================================================
--- AGARRAR
+-- GRAB
 --==============================================================
 
-local function agarrar(obj)
+local function agarrarHuevo(huevo)
 
-    local prompt = buscarPrompt(obj)
+    local prompt = encontrarPrompt(huevo)
 
     if not prompt then
+        warn("No encontré ProximityPrompt en:",huevo:GetFullName())
         return false
     end
+
+    print("PROMPT:",prompt:GetFullName())
 
     pcall(function()
         prompt.HoldDuration = 0
@@ -397,185 +562,133 @@ local function agarrar(obj)
 end
 
 --==============================================================
--- BUSCAR MEJOR HUEVO
+-- CICLO AUTO STEAL
 --==============================================================
 
-local function buscarMejorHuevo()
+local function ejecutarSteal()
 
-    local mejor = nil
-
-    for _,obj in ipairs(workspace:GetDescendants()) do
-
-        local nombre = obj.Name:lower()
-
-        if nombre:find("egg",1,true)
-        or nombre:find("huevo",1,true) then
-
-            if obj:IsA("Model")
-            or obj:IsA("BasePart") then
-
-                mejor = obj
-                break
-            end
-        end
-    end
-
-    return mejor
-end
-
---==============================================================
--- AUTO STEAL
---==============================================================
-
-local function hacerAutoSteal()
-
-    if Working then
+    if BUSY then
         return
     end
 
-    Working = true
+    BUSY = true
 
-    local root = getRoot()
-
-    if not root then
-        Working = false
-        return
-    end
-
-    --==========================================================
-    -- BUSCAR HUEVO
-    --==========================================================
-
-    status.Text = "STATUS: BUSCANDO HUEVO"
+    status.Text = "STATUS: BUSCANDO MEJOR HUEVO"
 
     local huevo = buscarMejorHuevo()
 
     if not huevo then
 
-        status.Text = "STATUS: SIN HUEVO"
+        status.Text = "STATUS: NO HAY HUEVO"
 
-        Working = false
+        BUSY = false
+
         return
     end
 
-    --==========================================================
-    -- OBTENER PARTE
-    --==========================================================
+    local part = obtenerParte(huevo)
 
-    local parte
+    if not part then
 
-    if huevo:IsA("BasePart") then
-
-        parte = huevo
-
-    else
-
-        parte =
-            huevo.PrimaryPart
-            or huevo:FindFirstChildWhichIsA("BasePart",true)
-    end
-
-    if not parte then
-
-        Working = false
+        BUSY = false
         return
     end
 
-    --==========================================================
+    ----------------------------------------------------------
     -- TP AL HUEVO
-    --==========================================================
+    ----------------------------------------------------------
 
-    status.Text = "STATUS: TP AL HUEVO"
+    status.Text = "STATUS: TP AL MEJOR HUEVO"
+
+    local character,root = getCharacter()
+
+    if not root then
+        BUSY = false
+        return
+    end
 
     root.CFrame =
-        CFrame.new(parte.Position + Vector3.new(0,4,0))
+        CFrame.new(part.Position + Vector3.new(0,HEIGHT_OFFSET,0))
 
     task.wait(0.15)
 
-    --==========================================================
+    ----------------------------------------------------------
     -- CONGELAR
-    --==========================================================
+    ----------------------------------------------------------
 
     status.Text = "STATUS: CONGELADO • AGARRANDO"
 
-    congelar(root)
+    freezeCharacter()
 
     task.wait(0.1)
 
-    --==========================================================
+    ----------------------------------------------------------
     -- AGARRAR
-    --==========================================================
+    ----------------------------------------------------------
 
-    agarrar(huevo)
+    agarrarHuevo(huevo)
 
-    task.wait(0.4)
+    task.wait(0.35)
 
-    --==========================================================
+    ----------------------------------------------------------
     -- DESCONGELAR
-    --==========================================================
+    ----------------------------------------------------------
 
-    descongelar(root)
+    unfreezeCharacter()
 
-    --==========================================================
-    -- TP A TU PLOT
-    --==========================================================
+    ----------------------------------------------------------
+    -- VOLVER AL PLOT
+    ----------------------------------------------------------
 
-    status.Text = "STATUS: VOLVIENDO AL PLOT"
+    status.Text = "STATUS: VOLVIENDO A MI PLOT"
 
     task.wait(0.1)
 
-    local regreso = TP_MiPlot()
-
-    if not regreso then
-        status.Text = "STATUS: ❌ NO ENCONTRE TU PLOT"
-    else
-        status.Text = "STATUS: ✓ REGRESO AL PLOT"
-    end
+    UltraTP()
 
     task.wait(0.5)
 
-    Working = false
+    BUSY = false
 end
 
 --==============================================================
--- AUTO LOOP
+-- AUTO STEAL LOOP
 --==============================================================
 
 task.spawn(function()
 
     while gui.Parent do
 
-        if AutoSteal and not Working then
-            hacerAutoSteal()
+        if AUTO_STEAL and not BUSY then
+            ejecutarSteal()
         end
 
-        task.wait(0.4)
+        task.wait(0.5)
     end
+
 end)
 
 --==============================================================
 -- BOTON AUTO STEAL
 --==============================================================
 
-autoButton.MouseButton1Click:Connect(function()
+stealButton.MouseButton1Click:Connect(function()
 
-    AutoSteal = not AutoSteal
+    AUTO_STEAL = not AUTO_STEAL
 
-    if AutoSteal then
+    if AUTO_STEAL then
 
-        autoButton.Text = "AUTO STEAL : ON"
-        autoButton.TextColor3 =
-            Color3.fromRGB(0,255,140)
+        stealButton.Text = "AUTO STEAL : ON"
+        stealButton.TextColor3 = Color3.fromRGB(0,255,140)
 
         status.Text = "STATUS: AUTO STEAL ON"
 
     else
 
-        autoButton.Text = "AUTO STEAL : OFF"
-        autoButton.TextColor3 =
-            Color3.fromRGB(255,70,70)
+        stealButton.Text = "AUTO STEAL : OFF"
+        stealButton.TextColor3 = Color3.fromRGB(255,80,80)
 
-        status.Text = "STATUS: READY"
+        status.Text = "STATUS: IDLE"
     end
 end)
 
@@ -585,41 +698,30 @@ end)
 
 tpButton.MouseButton1Click:Connect(function()
 
-    status.Text = "STATUS: BUSCANDO MI PLOT..."
+    tpButton.Text = "⚡ BUSCANDO..."
 
-    local resultado = TP_MiPlot()
-
-    if resultado then
-
-        status.Text = "STATUS: ✓ TP A MI PLOT"
-
+    if UltraTP() then
+        tpButton.Text = "✓ MI PLOT"
     else
-
-        status.Text = "STATUS: ❌ PLOT NO ENCONTRADO"
+        tpButton.Text = "❌ NO ENCONTRADO"
     end
 
     task.wait(1)
 
-    if not AutoSteal then
-        status.Text = "STATUS: READY"
-    end
+    tpButton.Text = "⚡ ULTRA TP A MI PLOT"
 end)
 
 --==============================================================
--- AL REAPARECER
+-- RESET
 --==============================================================
 
 player.CharacterAdded:Connect(function()
 
-    Working = false
+    BUSY = false
 
     task.wait(1)
 
-    if AutoSteal then
-        status.Text = "STATUS: BUSCANDO PLOT"
+    if AUTO_STEAL then
+        status.Text = "STATUS: REINICIO • BUSCANDO PLOT"
     end
 end)
-
---==============================================================
--- FIN
---==============================================================
