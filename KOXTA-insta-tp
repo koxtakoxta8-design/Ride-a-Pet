@@ -770,56 +770,207 @@ local function FindRanchDeliveryPoint()
     return nil
 end
 
-local function GetRespawnCFrame()
+local function FindMyPlotBaseCFrame()
 
-    -- Si el personaje actual ya fue colocado por el juego en su
-    -- rancho, esa es la referencia correcta para ESTE servidor.
-    local character = LocalPlayer.Character
+    local playerName = string.lower(LocalPlayer.Name)
+    local displayName = string.lower(LocalPlayer.DisplayName)
 
-    if character and character.Parent then
-        local root = character:FindFirstChild("HumanoidRootPart")
+    local function matchesOwnerText(value)
+        local s = string.lower(tostring(value or ""))
+        return s == playerName
+            or s == displayName
+            or string.find(s, playerName, 1, true) ~= nil
+            or string.find(s, displayName, 1, true) ~= nil
+    end
 
-        if root then
-            -- Si nunca capturamos el rancho de esta sesión,
-            -- capturarlo desde el respawn actual.
-            if not RanchRespawnCFrame then
-                CaptureCurrentRanchSpawn(character)
+    local function isOwnerObject(obj)
+        if obj:IsA("ObjectValue") and obj.Value == LocalPlayer then
+            return true
+        end
+
+        if obj:IsA("StringValue") and matchesOwnerText(obj.Value) then
+            return true
+        end
+
+        if obj:IsA("IntValue") or obj:IsA("NumberValue") then
+            if tonumber(obj.Value) == LocalPlayer.UserId then
+                return true
+            end
+        end
+
+        for _, key in ipairs({
+            "Owner", "OwnerName", "PlotOwner", "Player",
+            "PlayerName", "Username", "User", "UserName",
+            "OwnerUserId", "PlayerUserId", "UserId"
+        }) do
+            local ok, value = pcall(function()
+                return obj:GetAttribute(key)
+            end)
+
+            if ok and value ~= nil then
+                if value == LocalPlayer.UserId
+                    or value == LocalPlayer
+                    or matchesOwnerText(value)
+                then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
+
+    local function chooseBasePart(container)
+        local best = nil
+        local bestScore = -math.huge
+
+        for _, obj in ipairs(container:GetDescendants()) do
+            if obj:IsA("BasePart") then
+
+                local n = string.lower(obj.Name)
+                local score = 0
+
+                if string.find(n, "spawn", 1, true) then
+                    score += 100
+                end
+                if string.find(n, "ranch", 1, true) then
+                    score += 80
+                end
+                if string.find(n, "plot", 1, true) then
+                    score += 70
+                end
+                if string.find(n, "home", 1, true) then
+                    score += 60
+                end
+                if string.find(n, "entrance", 1, true) then
+                    score += 50
+                end
+
+                -- Evitar piezas claramente pertenecientes a huevos/nidos.
+                if string.find(n, "egg", 1, true)
+                    or string.find(n, "huevo", 1, true)
+                then
+                    score -= 200
+                end
+
+                if string.find(n, "nest", 1, true)
+                    or string.find(n, "nido", 1, true)
+                then
+                    score -= 100
+                end
+
+                if score > bestScore then
+                    bestScore = score
+                    best = obj
+                end
+            end
+        end
+
+        if best and bestScore > 0 then
+            return best.CFrame + Vector3.new(0, 3, 0)
+        end
+
+        return nil
+    end
+
+    -- Primero buscar un contenedor cuyo propietario sea ESTE jugador.
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+
+        if isOwnerObject(obj) then
+
+            local container = obj:FindFirstAncestorWhichIsA("Model")
+
+            if not container then
+                container = obj.Parent
+            end
+
+            if container then
+                local result = chooseBasePart(container)
+
+                if result then
+                    return result
+                end
             end
         end
     end
 
-    -- Solo devolver la posición aprendida del respawn real.
-    -- NO hacemos fallback a SpawnLocation, RespawnLocation,
-    -- plot central ni coordenadas fijas.
-    return RanchRespawnCFrame
+    -- Segundo método: buscar un cartel/GUI dentro de un modelo
+    -- que muestre el nombre del jugador.
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+
+        if obj:IsA("TextLabel")
+            or obj:IsA("TextButton")
+            or obj:IsA("TextBox")
+        then
+
+            if matchesOwnerText(obj.Text) then
+
+                local container =
+                    obj:FindFirstAncestorWhichIsA("Model")
+
+                if container then
+                    local result = chooseBasePart(container)
+
+                    if result then
+                        return result
+                    end
+                end
+            end
+        end
+    end
+
+    -- Tercer método: Roblox puede exponer directamente el spawn
+    -- asignado al jugador.
+    local ok, respawn = pcall(function()
+        return LocalPlayer.RespawnLocation
+    end)
+
+    if ok and respawn and respawn:IsA("BasePart") then
+        return respawn.CFrame + Vector3.new(0, 3, 0)
+    end
+
+    return nil
 end
 
--- Cada respawn vuelve a aprender el rancho del servidor actual.
-LocalPlayer.CharacterAdded:Connect(function(character)
-    RanchRespawnCFrame = nil
-    RanchRespawnCharacter = character
+local function GetRespawnCFrame()
 
-    task.spawn(function()
-        CaptureCurrentRanchSpawn(character)
-    end)
-end)
+    -- IMPORTANTE:
+    -- NO usar la posición actual del personaje.
+    -- El script puede ejecutarse lejos de la base.
+    --
+    -- Primero localizar el plot/ranch que pertenece al jugador.
+    local plotCFrame = FindMyPlotBaseCFrame()
 
--- Si el personaje ya existe al ejecutar el script.
-if LocalPlayer.Character then
-    task.spawn(function()
-        CaptureCurrentRanchSpawn(LocalPlayer.Character)
+    if plotCFrame then
+        RanchRespawnCFrame = plotCFrame
+        return plotCFrame
+    end
+
+    -- Fallback únicamente al RespawnLocation real del jugador.
+    local ok, respawn = pcall(function()
+        return LocalPlayer.RespawnLocation
     end)
+
+    if ok and respawn and respawn:IsA("BasePart") then
+        RanchRespawnCFrame =
+            respawn.CFrame + Vector3.new(0, 3, 0)
+
+        return RanchRespawnCFrame
+    end
+
+    -- No inventar una posición.
+    return RanchRespawnCFrame
 end
 
 local function SaveSpawn()
 
-    -- Guardar la BASE real del jugador, no la posición del huevo
-    -- ni una posición temporal del personaje.
-    local ranch = GetRespawnCFrame()
+    -- Resolver la BASE por propietario, NO guardar donde se ejecutó
+    -- el script.
+    local base = GetRespawnCFrame()
 
-    if ranch then
-        RanchRespawnCFrame = ranch
-        SavedSpawnCFrame = ranch
+    if base then
+        RanchRespawnCFrame = base
+        SavedSpawnCFrame = base
     end
 
 end
