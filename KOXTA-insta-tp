@@ -467,27 +467,163 @@ end
 
 local function GetRespawnCFrame()
 
-    -- Usa el SpawnLocation asignado al jugador, si existe.
+    --==========================================================
+    -- REGRESAR AL PLOT / JARDÍN DEL JUGADOR
+    --==========================================================
+    -- No elegimos un SpawnLocation global, porque el mapa tiene
+    -- uno central y otro relacionado con los plots.
+    --
+    -- Primero buscamos un contenedor que identifique al jugador
+    -- por nombre/atributos y dentro de él buscamos su punto de
+    -- spawn/plot/jardín.
+
+    local playerName = string.lower(LocalPlayer.Name)
+    local displayName = string.lower(LocalPlayer.DisplayName)
+
+    local function MatchesPlayer(text)
+        text = string.lower(tostring(text or ""))
+
+        return string.find(text, playerName, 1, true)
+            or string.find(text, displayName, 1, true)
+    end
+
+    local function LooksLikeBaseContainer(obj)
+        local n = string.lower(tostring(obj.Name or ""))
+
+        return string.find(n, "plot", 1, true)
+            or string.find(n, "base", 1, true)
+            or string.find(n, "garden", 1, true)
+            or string.find(n, "jardin", 1, true)
+            or string.find(n, "farm", 1, true)
+            or string.find(n, "island", 1, true)
+    end
+
+    local function IsOwnedByPlayer(obj)
+        if MatchesPlayer(obj.Name) then
+            return true
+        end
+
+        for attributeName, value in pairs(obj:GetAttributes()) do
+            local a = string.lower(tostring(attributeName or ""))
+            local v = string.lower(tostring(value or ""))
+
+            if (
+                string.find(a, "owner", 1, true)
+                or string.find(a, "player", 1, true)
+                or string.find(a, "user", 1, true)
+                or string.find(a, "plot", 1, true)
+            ) then
+                if MatchesPlayer(v) then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
+
+    local function ScoreTarget(obj)
+        local n = string.lower(tostring(obj.Name or ""))
+        local score = 0
+
+        if obj:IsA("SpawnLocation") then
+            score += 20
+        end
+
+        if string.find(n, "spawn", 1, true) then
+            score += 30
+        end
+
+        if string.find(n, "home", 1, true) then
+            score += 25
+        end
+
+        if string.find(n, "plot", 1, true) then
+            score += 20
+        end
+
+        if string.find(n, "garden", 1, true)
+            or string.find(n, "jardin", 1, true) then
+            score += 20
+        end
+
+        if string.find(n, "base", 1, true) then
+            score += 15
+        end
+
+        return score
+    end
+
+    local bestTarget = nil
+    local bestScore = -1
+
+    -- Primero: buscar contenedores que claramente pertenezcan
+    -- al jugador.
+    for _, container in ipairs(Workspace:GetDescendants()) do
+
+        if (container:IsA("Model") or container:IsA("Folder"))
+            and IsOwnedByPlayer(container)
+        then
+
+            local containerScore =
+                LooksLikeBaseContainer(container) and 20 or 5
+
+            for _, obj in ipairs(container:GetDescendants()) do
+
+                if obj:IsA("SpawnLocation") then
+                    local score =
+                        containerScore
+                        + ScoreTarget(obj)
+
+                    if obj.Enabled then
+                        score += 10
+                    end
+
+                    if score > bestScore then
+                        bestScore = score
+                        bestTarget = obj
+                    end
+                end
+
+                -- Algunos juegos usan una Part/Point en vez de
+                -- SpawnLocation para marcar la entrada del plot.
+                if obj:IsA("BasePart") then
+                    local score =
+                        containerScore
+                        + ScoreTarget(obj)
+
+                    if score >= 30 and score > bestScore then
+                        bestScore = score
+                        bestTarget = obj
+                    end
+                end
+            end
+        end
+    end
+
+    if bestTarget and bestTarget:IsA("BasePart") then
+        return bestTarget.CFrame + Vector3.new(0, 3, 0)
+    end
+
+    -- Segundo intento: SpawnLocation cuyo propio nombre/atributos
+    -- identifiquen directamente al jugador.
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("SpawnLocation") and obj.Enabled then
+
+            if IsOwnedByPlayer(obj) then
+                return obj.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+    end
+
+    -- Tercer intento: RespawnLocation oficial de Roblox.
     local respawnLocation = LocalPlayer.RespawnLocation
 
     if respawnLocation and respawnLocation:IsA("SpawnLocation") then
         return respawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
-    -- Si no hay RespawnLocation asignado, busca un SpawnLocation activo.
-    local character = LocalPlayer.Character
-    local teamColor = LocalPlayer.TeamColor
-
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("SpawnLocation") and obj.Enabled then
-            if not character or not obj.Neutral then
-                if obj.Neutral or obj.TeamColor == teamColor then
-                    return obj.CFrame + Vector3.new(0, 3, 0)
-                end
-            end
-        end
-    end
-
+    -- Último respaldo.
     return nil
 end
 
