@@ -1,6 +1,7 @@
 --==============================================================
 -- KOXTA HUB • AUTO STEAL + ULTRA TP
--- TP A TU PLOT = MISMA LOGICA QUE COMPROBASTE
+-- BLACK EDITION
+-- TP A TU PLOT • AUTO STEAL
 --==============================================================
 
 local Players = game:GetService("Players")
@@ -122,50 +123,116 @@ local function getRoot()
 end
 
 --==============================================================
--- TU CODIGO DE PLOT
+-- BUSCAR MI PLOT
 --==============================================================
 
 local function buscarMiPlot()
 
-    local plots = workspace:FindFirstChild("Plots")
-        or workspace:FindFirstChild("plots")
-        or workspace:FindFirstChild("Bases")
-        or workspace:FindFirstChild("bases")
+    local contenedores = {
+        workspace:FindFirstChild("Plots"),
+        workspace:FindFirstChild("plots"),
+        workspace:FindFirstChild("Bases"),
+        workspace:FindFirstChild("bases"),
+    }
 
-    if not plots then
-        return nil
-    end
+    for _, contenedor in ipairs(contenedores) do
 
-    for _, plot in ipairs(plots:GetChildren()) do
+        if contenedor then
 
-        -- BUSCAR TU NOMBRE EN ATRIBUTOS
-        for _, atributo in ipairs({
-            "Owner",
-            "OwnerName",
-            "Player",
-            "PlayerName",
-            "UserId"
-        }) do
+            for _, plot in ipairs(contenedor:GetChildren()) do
 
-            local valor = plot:GetAttribute(atributo)
+                --==================================================
+                -- ATRIBUTOS
+                --==================================================
 
-            if valor and (
-                tostring(valor) == player.Name
-                or tostring(valor) == tostring(player.UserId)
-            ) then
+                local atributos = {
+                    "Owner",
+                    "OwnerName",
+                    "Player",
+                    "PlayerName",
+                    "Username",
+                    "UserName",
+                    "UserId",
+                    "OwnerUserId",
+                    "OwnerId",
+                }
 
-                return plot
-            end
-        end
+                for _, atributo in ipairs(atributos) do
 
-        -- BUSCAR VALUE DENTRO DEL PLOT
-        for _, obj in ipairs(plot:GetDescendants()) do
+                    local valor = plot:GetAttribute(atributo)
 
-            if obj:IsA("StringValue")
-            or obj:IsA("ObjectValue") then
+                    if valor ~= nil then
 
-                if obj.Value == player.Name
-                or obj.Value == player then
+                        local texto = tostring(valor)
+
+                        if texto == player.Name
+                        or texto == player.DisplayName
+                        or texto == tostring(player.UserId) then
+
+                            return plot
+                        end
+                    end
+                end
+
+                --==================================================
+                -- VALUES
+                --==================================================
+
+                for _, obj in ipairs(plot:GetDescendants()) do
+
+                    if obj:IsA("StringValue") then
+
+                        local valor = tostring(obj.Value)
+
+                        if valor == player.Name
+                        or valor == player.DisplayName
+                        or valor == tostring(player.UserId) then
+
+                            return plot
+                        end
+
+                    elseif obj:IsA("ObjectValue") then
+
+                        if obj.Value == player then
+                            return plot
+                        end
+
+                    elseif obj:IsA("IntValue")
+                    or obj:IsA("NumberValue") then
+
+                        if tostring(obj.Value) == tostring(player.UserId) then
+                            return plot
+                        end
+                    end
+                end
+
+                --==================================================
+                -- MODELO CON TU NOMBRE
+                --==================================================
+
+                for _, obj in ipairs(plot:GetDescendants()) do
+
+                    if obj:IsA("Model") then
+
+                        if obj.Name == player.Name
+                        or obj.Name == player.DisplayName then
+
+                            return plot
+                        end
+                    end
+                end
+
+                --==================================================
+                -- NOMBRE DEL PLOT
+                --==================================================
+
+                local nombrePlot = plot.Name:lower()
+
+                local nombreJugador = player.Name:lower()
+                local displayJugador = player.DisplayName:lower()
+
+                if nombrePlot:find(nombreJugador,1,true)
+                or nombrePlot:find(displayJugador,1,true) then
 
                     return plot
                 end
@@ -177,25 +244,55 @@ local function buscarMiPlot()
 end
 
 --==============================================================
--- TU CODIGO DE SPAWN
+-- BUSCAR SPAWN DEL PLOT
 --==============================================================
 
 local function encontrarSpawn(plot)
 
+    if not plot then
+        return nil
+    end
+
+    -- Nombres conocidos
+    local nombres = {
+        "Spawn",
+        "PlotSpawn",
+        "SpawnLocation",
+        "Respawn",
+        "PlayerSpawn",
+        "HomeSpawn",
+        "BaseSpawn",
+        "SpawnPoint",
+        "SpawnPart",
+    }
+
+    -- Buscar por nombre
+    for _, nombre in ipairs(nombres) do
+
+        local obj = plot:FindFirstChild(nombre,true)
+
+        if obj and obj:IsA("BasePart") then
+            return obj
+        end
+    end
+
+    -- SpawnLocation
     for _, obj in ipairs(plot:GetDescendants()) do
 
         if obj:IsA("SpawnLocation") then
             return obj
         end
+    end
+
+    -- Cualquier parte que tenga spawn/respawn
+    for _, obj in ipairs(plot:GetDescendants()) do
 
         if obj:IsA("BasePart") then
 
             local nombre = obj.Name:lower()
 
-            if nombre == "spawn"
-            or nombre == "plotspawn"
-            or nombre == "spawnlocation"
-            or nombre == "respawn" then
+            if nombre:find("spawn",1,true)
+            or nombre:find("respawn",1,true) then
 
                 return obj
             end
@@ -206,7 +303,7 @@ local function encontrarSpawn(plot)
 end
 
 --==============================================================
--- TU TP AL PLOT
+-- TP A MI PLOT
 --==============================================================
 
 local function TP_MiPlot()
@@ -300,18 +397,10 @@ local function agarrar(obj)
 end
 
 --==============================================================
--- ENCONTRAR MEJOR HUEVO
---
--- IMPORTANTE:
--- Aquí debe ir EXACTAMENTE tu función de detección
--- del mejor huevo que ya tienes funcionando.
+-- BUSCAR MEJOR HUEVO
 --==============================================================
 
 local function buscarMejorHuevo()
-
-    -- Busca objetos llamados Egg/Huevo.
-    -- Si tu script anterior ya tiene esta función,
-    -- reemplaza SOLO esta función por la tuya.
 
     local mejor = nil
 
@@ -319,18 +408,13 @@ local function buscarMejorHuevo()
 
         local nombre = obj.Name:lower()
 
-        if nombre:find("egg")
-        or nombre:find("huevo") then
+        if nombre:find("egg",1,true)
+        or nombre:find("huevo",1,true) then
 
             if obj:IsA("Model")
             or obj:IsA("BasePart") then
 
                 mejor = obj
-
-                -- No se altera tu sistema de TP al Plot.
-                -- Esta función queda preparada para conectar
-                -- tu detector real de mejor huevo.
-
                 break
             end
         end
@@ -358,7 +442,10 @@ local function hacerAutoSteal()
         return
     end
 
+    --==========================================================
     -- BUSCAR HUEVO
+    --==========================================================
+
     status.Text = "STATUS: BUSCANDO HUEVO"
 
     local huevo = buscarMejorHuevo()
@@ -371,18 +458,25 @@ local function hacerAutoSteal()
         return
     end
 
+    --==========================================================
     -- OBTENER PARTE
+    --==========================================================
+
     local parte
 
     if huevo:IsA("BasePart") then
+
         parte = huevo
+
     else
+
         parte =
             huevo.PrimaryPart
             or huevo:FindFirstChildWhichIsA("BasePart",true)
     end
 
     if not parte then
+
         Working = false
         return
     end
@@ -430,7 +524,13 @@ local function hacerAutoSteal()
 
     task.wait(0.1)
 
-    TP_MiPlot()
+    local regreso = TP_MiPlot()
+
+    if not regreso then
+        status.Text = "STATUS: ❌ NO ENCONTRE TU PLOT"
+    else
+        status.Text = "STATUS: ✓ REGRESO AL PLOT"
+    end
 
     task.wait(0.5)
 
@@ -476,7 +576,6 @@ autoButton.MouseButton1Click:Connect(function()
             Color3.fromRGB(255,70,70)
 
         status.Text = "STATUS: READY"
-
     end
 end)
 
@@ -486,11 +585,16 @@ end)
 
 tpButton.MouseButton1Click:Connect(function()
 
-    status.Text = "STATUS: TP A MI PLOT"
+    status.Text = "STATUS: BUSCANDO MI PLOT..."
 
-    if TP_MiPlot() then
-        status.Text = "STATUS: ✓ MI PLOT"
+    local resultado = TP_MiPlot()
+
+    if resultado then
+
+        status.Text = "STATUS: ✓ TP A MI PLOT"
+
     else
+
         status.Text = "STATUS: ❌ PLOT NO ENCONTRADO"
     end
 
@@ -515,3 +619,7 @@ player.CharacterAdded:Connect(function()
         status.Text = "STATUS: BUSCANDO PLOT"
     end
 end)
+
+--==============================================================
+-- FIN
+--==============================================================
