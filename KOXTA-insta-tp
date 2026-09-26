@@ -284,17 +284,39 @@ local function RefreshBestEgg()
 end
 
 --==============================================================
--- GUARDAR SPAWN
+-- RESPawn REAL
 --==============================================================
 
-local function SaveSpawn()
+local function GetRespawnCFrame()
 
-    local root = GetRoot()
+    -- Usa el SpawnLocation asignado al jugador, si existe.
+    local respawnLocation = LocalPlayer.RespawnLocation
 
-    if root then
-        SavedSpawnCFrame = root.CFrame
+    if respawnLocation and respawnLocation:IsA("SpawnLocation") then
+        return respawnLocation.CFrame + Vector3.new(0, 3, 0)
     end
 
+    -- Si no hay RespawnLocation asignado, busca un SpawnLocation activo.
+    local character = LocalPlayer.Character
+    local teamColor = LocalPlayer.TeamColor
+
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("SpawnLocation") and obj.Enabled then
+            if not character or not obj.Neutral then
+                if obj.Neutral or obj.TeamColor == teamColor then
+                    return obj.CFrame + Vector3.new(0, 3, 0)
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function SaveSpawn()
+    -- Ya no guarda la posición donde estaba el jugador.
+    -- Guarda el CFrame del respawn real del jugador.
+    SavedSpawnCFrame = GetRespawnCFrame()
 end
 
 --==============================================================
