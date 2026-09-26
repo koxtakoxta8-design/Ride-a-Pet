@@ -643,24 +643,150 @@ local RanchRespawnCharacter = nil
 -- el punto de respawn.
 
 --==============================================================
--- SPAWN DE ENTRADA DEL JUGADOR
+-- SPAWN DE ENTRADA / RESPAWN ASIGNADO A MI BASE
 --==============================================================
--- El destino NO es la posición donde se ejecuta el script.
--- Tampoco requiere matar al personaje.
---
--- Se intenta obtener el SpawnLocation/RespawnLocation que Roblox
--- tiene asignado al jugador al entrar al servidor.
+-- Hay varios SpawnLocation en el mapa. NO usamos el más cercano.
+-- Primero intentamos el RespawnLocation de Roblox.
+-- Si el juego usa un sistema propio de plots, buscamos el plot
+-- cuyo Owner/UserId/nombre pertenece al jugador y usamos su spawn.
 
 local EntrySpawnCFrame = nil
 
+local function IsMine(value)
+    if value == nil then
+        return false
+    end
+
+    if value == LocalPlayer or value == LocalPlayer.UserId then
+        return true
+    end
+
+    local s = string.lower(tostring(value))
+    local n = string.lower(LocalPlayer.Name)
+    local d = string.lower(LocalPlayer.DisplayName)
+
+    return s == n
+        or s == d
+        or string.find(s, n, 1, true) ~= nil
+        or string.find(s, d, 1, true) ~= nil
+end
+
+local function IsOwnedByMe(obj)
+
+    -- ObjectValue / StringValue / NumberValue / IntValue
+    for _, child in ipairs(obj:GetChildren()) do
+
+        if child:IsA("ObjectValue") and child.Value == LocalPlayer then
+            return true
+        end
+
+        if child:IsA("StringValue") and IsMine(child.Value) then
+            return true
+        end
+
+        if (child:IsA("IntValue") or child:IsA("NumberValue"))
+            and tonumber(child.Value) == LocalPlayer.UserId
+        then
+            return true
+        end
+    end
+
+    -- Atributos típicos de sistemas de plots.
+    for _, key in ipairs({
+        "Owner", "OwnerName", "PlotOwner", "Player",
+        "PlayerName", "Username", "User", "UserName",
+        "OwnerUserId", "PlayerUserId", "UserId"
+    }) do
+
+        local ok, value = pcall(function()
+            return obj:GetAttribute(key)
+        end)
+
+        if ok and IsMine(value) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function FindSpawnInside(container)
+
+    local best = nil
+    local bestScore = -math.huge
+
+    for _, obj in ipairs(container:GetDescendants()) do
+
+        if obj:IsA("SpawnLocation") then
+
+            local score = 0
+            local name = string.lower(obj.Name)
+
+            if string.find(name, "spawn", 1, true) then
+                score += 100
+            end
+
+            if string.find(name, "home", 1, true) then
+                score += 80
+            end
+
+            if string.find(name, "base", 1, true) then
+                score += 70
+            end
+
+            if string.find(name, "plot", 1, true) then
+                score += 60
+            end
+
+            if string.find(name, "ranch", 1, true) then
+                score += 60
+            end
+
+            -- Evitar un spawn central/genérico si el plot tiene otro.
+            if obj.Neutral then
+                score -= 50
+            end
+
+            if score > bestScore then
+                bestScore = score
+                best = obj
+            end
+        end
+    end
+
+    if best then
+        return best.CFrame + Vector3.new(0, 3, 0)
+    end
+
+    -- Algunos juegos no usan SpawnLocation sino una pieza llamada
+    -- Spawn/Respawn dentro del plot.
+    for _, obj in ipairs(container:GetDescendants()) do
+
+        if obj:IsA("BasePart") then
+
+            local name = string.lower(obj.Name)
+
+            if
+                string.find(name, "respawn", 1, true)
+                or string.find(name, "spawn", 1, true)
+            then
+                return obj.CFrame + Vector3.new(0, 3, 0)
+            end
+        end
+    end
+
+    return nil
+end
+
 local function ResolveEntrySpawn()
 
-    -- 1) RespawnLocation asignado directamente al jugador.
+    -- 1) Roblox puede tener el spawn asignado directamente.
     local ok, respawn = pcall(function()
         return LocalPlayer.RespawnLocation
     end)
 
     if ok and respawn and respawn:IsA("BasePart") then
+
         EntrySpawnCFrame =
             respawn.CFrame + Vector3.new(0, 3, 0)
 
@@ -670,43 +796,68 @@ local function ResolveEntrySpawn()
         return EntrySpawnCFrame
     end
 
-    -- 2) Buscar SpawnLocation que Roblox tenga disponible.
-    -- No usamos la posición actual del personaje.
-    local character = LocalPlayer.Character
+    -- 2) Buscar EXCLUSIVAMENTE el plot que pertenece al jugador.
+    -- Nunca elegir el SpawnLocation más cercano del mapa.
+    local candidates = {}
 
-    if character then
-        local root = character:FindFirstChild("HumanoidRootPart")
+    for _, obj in ipairs(Workspace:GetDescendants()) do
 
-        if root then
-            local closest = nil
-            local closestDistance = math.huge
+        if IsOwnedByMe(obj) then
 
-            for _, obj in ipairs(Workspace:GetDescendants()) do
+            local model =
+                obj:IsA("Model") and obj
+                or obj:FindFirstAncestorWhichIsA("Model")
 
-                if obj:IsA("SpawnLocation") then
-
-                    local distance =
-                        (obj.Position - root.Position).Magnitude
-
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closest = obj
-                    end
-                end
-            end
-
-            if closest then
-                EntrySpawnCFrame =
-                    closest.CFrame + Vector3.new(0, 3, 0)
-
-                RanchRespawnCFrame = EntrySpawnCFrame
-                SavedSpawnCFrame = EntrySpawnCFrame
-
-                return EntrySpawnCFrame
+            if model then
+                candidates[model] = true
             end
         end
     end
 
+    for model in pairs(candidates) do
+
+        local result = FindSpawnInside(model)
+
+        if result then
+
+            EntrySpawnCFrame = result
+            RanchRespawnCFrame = result
+            SavedSpawnCFrame = result
+
+            return result
+        end
+    end
+
+    -- 3) Si no hay SpawnLocation dentro del plot, buscar una pieza
+    -- de respawn dentro del objeto que contiene el Owner.
+    for obj in pairs(candidates) do
+
+        for _, part in ipairs(obj:GetDescendants()) do
+
+            if part:IsA("BasePart") then
+
+                local n = string.lower(part.Name)
+
+                if
+                    string.find(n, "respawn", 1, true)
+                    or string.find(n, "spawn", 1, true)
+                then
+
+                    local result =
+                        part.CFrame + Vector3.new(0, 3, 0)
+
+                    EntrySpawnCFrame = result
+                    RanchRespawnCFrame = result
+                    SavedSpawnCFrame = result
+
+                    return result
+                end
+            end
+        end
+    end
+
+    -- NO fallback al SpawnLocation más cercano.
+    -- Eso era precisamente lo que te mandaba al spawn equivocado.
     return nil
 end
 
@@ -715,12 +866,9 @@ local function GetRespawnCFrame()
 end
 
 local function SaveSpawn()
-    -- Resolver el spawn asignado al entrar.
-    -- NUNCA guardar la posición actual del jugador.
     return ResolveEntrySpawn() ~= nil
 end
 
--- Resolver una vez al cargar el script.
 task.spawn(function()
     task.wait(0.5)
     ResolveEntrySpawn()
