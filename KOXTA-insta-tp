@@ -45,6 +45,177 @@ local BestEgg = nil
 local BestLuck = 0
 
 --==============================================================
+-- ULTRA EGG RANK
+--==============================================================
+-- 25 map eggs are documented currently. Two Mythic eggs (90K and
+-- 500K) still have no confirmed public names, so they are handled
+-- by their live Luck/value when the game exposes it.
+--
+-- Order: LOW -> HIGH. Higher rank = better egg.
+local EggNameRank = {
+    ["White Egg"] = 1,
+    ["Brown Egg"] = 2,
+    ["Cracked Egg"] = 3,
+    ["Easter Egg"] = 4,
+    ["Stone Egg"] = 5,
+    ["Leaf Egg"] = 6,
+    ["Mushroom Egg"] = 7,
+    ["Flower Egg"] = 8,
+    ["Slime Egg"] = 9,
+    ["Ice Egg"] = 10,
+    ["Glass Egg"] = 11,
+    ["Golden Egg"] = 12,
+
+    -- 90K unnamed Mythic slot
+    ["Crystal Egg"] = 14,
+    ["Skull Egg"] = 15,
+
+    -- 500K unnamed Mythic slot
+    ["Dominus Egg"] = 17,
+    ["Flaming Egg"] = 18,
+    ["Sinister Egg"] = 19,
+    ["Soul Egg"] = 20,
+
+    ["Aurora Egg"] = 21,
+    ["Galaxy Egg"] = 22,
+    ["Black Hole Egg"] = 23,
+    ["Solaris Egg"] = 24,
+    ["Cherub Egg"] = 25,
+}
+
+local KnownLuckRank = {
+    [1] = 1,
+    [5] = 2,
+    [30] = 3,
+    [50] = 4,
+    [100] = 5,
+    [200] = 6,
+    [500] = 7,
+    [750] = 8,
+    [1000] = 9,
+    [3000] = 10,
+    [10000] = 11,
+    [30000] = 12,
+    [90000] = 13,
+    [150000] = 14,
+    [250000] = 15,
+    [500000] = 16,
+    [700000] = 17,
+    [1000000] = 18,
+    [3000000] = 19,
+    [7000000] = 20,
+    [300000000] = 21,
+    [1500000000] = 22,
+    [100000000000] = 23,
+    [300000000000] = 24,
+    [1000000000000] = 25,
+}
+
+local function NormalizeEggName(name)
+    return string.lower(tostring(name or "")):gsub("%s+", " ")
+end
+
+local function ReadNumberWithSuffix(value)
+    local s = tostring(value or ""):upper():gsub(",", "")
+    local n = tonumber(string.match(s, "%d+%.?%d*"))
+    if not n then
+        return nil
+    end
+
+    if string.find(s, "T", 1, true) then
+        return n * 1e12
+    elseif string.find(s, "B", 1, true) then
+        return n * 1e9
+    elseif string.find(s, "M", 1, true) then
+        return n * 1e6
+    elseif string.find(s, "K", 1, true) then
+        return n * 1e3
+    end
+
+    return n
+end
+
+local function GetLiveEggLuck(obj)
+    if not obj then
+        return nil
+    end
+
+    -- Attributes are the safest live fallback.
+    for attributeName, value in pairs(obj:GetAttributes()) do
+        local key = NormalizeEggName(attributeName)
+        if string.find(key, "luck", 1, true)
+            or string.find(key, "value", 1, true)
+            or string.find(key, "rarity", 1, true) then
+
+            local number = ReadNumberWithSuffix(value)
+            if number then
+                return number
+            end
+        end
+    end
+
+    -- Also inspect simple StringValue/NumberValue descendants.
+    for _, child in ipairs(obj:GetDescendants()) do
+        if child:IsA("StringValue") or child:IsA("NumberValue") then
+            local key = NormalizeEggName(child.Name)
+
+            if string.find(key, "luck", 1, true)
+                or string.find(key, "value", 1, true) then
+
+                local number = ReadNumberWithSuffix(child.Value)
+                if number then
+                    return number
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+local function GetEggRankByName(name)
+    if EggNameRank[name] then
+        return EggNameRank[name]
+    end
+
+    local lowerName = NormalizeEggName(name)
+
+    for eggName, rank in pairs(EggNameRank) do
+        if string.find(
+            lowerName,
+            NormalizeEggName(eggName),
+            1,
+            true
+        ) then
+            return rank
+        end
+    end
+
+    return nil
+end
+
+local function GetEggRank(obj)
+    if not obj then
+        return nil
+    end
+
+    -- First choice: exact/current egg name.
+    local rank = GetEggRankByName(obj.Name)
+    if rank then
+        return rank
+    end
+
+    -- Unknown 90K / 500K eggs can still be ranked if the live object
+    -- exposes its value.
+    local luck = GetLiveEggLuck(obj)
+    if luck then
+        return KnownLuckRank[luck]
+    end
+
+    return nil
+end
+
+--==============================================================
 -- DATOS
 --==============================================================
 
@@ -214,9 +385,10 @@ local function IsValidEgg(obj)
         return false
     end
 
-    local data = GetEggData(obj.Name)
+    local eggRank = GetEggRank(obj)
 
-    if not data then
+    -- Do not let arbitrary objects enter the egg cache.
+    if not eggRank then
         return false
     end
 
@@ -232,6 +404,9 @@ local function IsValidEgg(obj)
         return false
     end
 
+    -- =========================================================
+    -- 210 STUDS: SIN CAMBIOS
+    -- =========================================================
     if (
         position - EXCLUSION_CENTER
     ).Magnitude <= EXCLUSION_RADIUS then
@@ -253,59 +428,20 @@ end
 
 local function RefreshBestEgg()
 
-    --==========================================================
-    -- ORDEN POR NOMBRE: MENOR -> MAYOR
-    --==========================================================
-    -- La detección de huevos NO se modifica.
-    -- Solo cambia cómo se elige el mejor huevo.
-    local EggNameRank = {
-        ["White Egg"] = 1,
-        ["Brown Egg"] = 2,
-        ["Cracked Egg"] = 3,
-        ["Easter Egg"] = 4,
-        ["Stone Egg"] = 5,
-        ["Leaf Egg"] = 6,
-        ["Mushroom Egg"] = 7,
-        ["Flower Egg"] = 8,
-        ["Slime Egg"] = 9,
-        ["Ice Egg"] = 10,
-        ["Glass Egg"] = 11,
-        ["Golden Egg"] = 12,
-        ["Crystal Egg"] = 13,
-        ["Skull Egg"] = 14,
-        ["Dominus Egg"] = 15,
-        ["Flaming Egg"] = 16,
-        ["Sinister Egg"] = 17,
-        ["Soul Egg"] = 18,
-        ["Aurora Egg"] = 19,
-        ["Galaxy Egg"] = 20,
-        ["Black Hole Egg"] = 21,
-        ["Solaris Egg"] = 22,
-        ["Cherub Egg"] = 23,
-    }
-
     local best = nil
     local bestRank = -1
 
     for obj in pairs(EggCache) do
-        if IsValidEgg(obj) then
-            local rank = EggNameRank[obj.Name]
 
-            -- Permite nombres con texto adicional.
-            if not rank then
-                local lowerName = string.lower(obj.Name)
-                for eggName, value in pairs(EggNameRank) do
-                    if string.find(lowerName, string.lower(eggName), 1, true) then
-                        rank = value
-                        break
-                    end
-                end
-            end
+        if IsValidEgg(obj) then
+
+            local rank = GetEggRank(obj)
 
             if rank and rank > bestRank then
                 bestRank = rank
                 best = obj
             end
+
         else
             EggCache[obj] = nil
         end
@@ -315,7 +451,9 @@ local function RefreshBestEgg()
 
     if best then
         local data = GetEggData(best.Name)
-        BestLuck = data and data.Luck or "N/A"
+        BestLuck =
+            data and data.Luck
+            or tostring(GetLiveEggLuck(best) or "N/A")
     else
         BestLuck = 0
     end
