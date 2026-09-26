@@ -18,7 +18,7 @@ local LocalPlayer = Players.LocalPlayer
 -- CONFIG
 --==============================================================
 
-local REFRESH_TIME = 1
+local REFRESH_TIME = 0.20
 local DETECTION_DISTANCE = 100000
 local EXCLUSION_RADIUS = 210
 
@@ -91,6 +91,7 @@ local EggNameRank = {
     ["Black Hole Egg"] = 23,
     ["Solaris Egg"] = 24,
     ["Cherub Egg"] = 25,
+    ["Volcanic Egg"] = 26,
 }
 
 local KnownLuckRank = {
@@ -119,6 +120,7 @@ local KnownLuckRank = {
     [100000000000] = 23,
     [300000000000] = 24,
     [1000000000000] = 25,
+    [2500000000000] = 26,
 }
 
 local function NormalizeEggName(name)
@@ -209,17 +211,59 @@ local function GetEggRank(obj)
         return nil
     end
 
-    -- First choice: exact/current egg name.
+    -- 1) Nombre conocido: prioridad máxima.
     local rank = GetEggRankByName(obj.Name)
     if rank then
         return rank
     end
 
-    -- Unknown 90K / 500K eggs can still be ranked if the live object
-    -- exposes its value.
+    -- 2) Si aparece un huevo nuevo que todavía no está en la tabla,
+    -- usar su Luck real para ordenarlo automáticamente.
     local luck = GetLiveEggLuck(obj)
     if luck then
-        return KnownLuckRank[luck]
+
+        -- Coincidencia exacta primero.
+        if KnownLuckRank[luck] then
+            return KnownLuckRank[luck]
+        end
+
+        -- Para valores nuevos (ej. 2.5T), ubicarlo entre los
+        -- valores conocidos en vez de descartarlo.
+        local bestRank = 0
+        local sorted = {}
+
+        for value, valueRank in pairs(KnownLuckRank) do
+            table.insert(sorted, {value = value, rank = valueRank})
+        end
+
+        table.sort(sorted, function(a, b)
+            return a.value < b.value
+        end)
+
+        for _, entry in ipairs(sorted) do
+            if luck >= entry.value then
+                bestRank = entry.rank
+            else
+                break
+            end
+        end
+
+        -- Un valor mayor que el máximo conocido queda por encima
+        -- del máximo conocido.
+        local maxRank = 0
+        for _, entry in ipairs(sorted) do
+            if entry.rank > maxRank then
+                maxRank = entry.rank
+            end
+        end
+
+        if luck > sorted[#sorted].value then
+            return maxRank + 1
+        end
+
+        if bestRank > 0 then
+            return bestRank
+        end
     end
 
     return nil
@@ -251,7 +295,8 @@ local EggData = {
     ["Aurora Egg"] = {Luck="300M", Rarity="Divine"},
     ["Galaxy Egg"] = {Luck="1.5B", Rarity="Divine"},
     ["Black Hole Egg"] = {Luck="100B", Rarity="Ethereal"},
-    ["Cherub Egg"] = {Luck="1T", Rarity="Ethereal"}
+    ["Cherub Egg"] = {Luck="1T", Rarity="Ethereal"},
+    ["Volcanic Egg"] = {Luck="2.5T", Rarity="Ethereal"}
 }
 
 --==============================================================
@@ -602,8 +647,13 @@ local function RefreshBestEgg()
         if IsValidEgg(obj) then
 
             local rank = GetEggRank(obj)
+            local luck = GetLiveEggLuck(obj) or 0
+            local currentBestLuck = best and (GetLiveEggLuck(best) or 0) or 0
 
-            if rank and rank > bestRank then
+            if rank and (
+                rank > bestRank
+                or (rank == bestRank and luck > currentBestLuck)
+            ) then
                 bestRank = rank
                 best = obj
             end
@@ -651,6 +701,8 @@ local RanchRespawnCharacter = nil
 -- cuyo Owner/UserId/nombre pertenece al jugador y usamos su spawn.
 
 local EntrySpawnCFrame = nil
+local OriginalPositionCFrame = nil
+local ReturnToOriginalPosition = true
 
 local function IsMine(value)
     if value == nil then
@@ -898,6 +950,12 @@ local function TeleportToEgg(egg)
     -- Detiene cualquier bloqueo anterior ANTES de crear el nuevo.
     StopEggLock()
 
+    -- Guardar posición antes del TP al huevo.
+    local currentRoot = GetRoot()
+    if currentRoot then
+        OriginalPositionCFrame = currentRoot.CFrame
+    end
+
     -- El TP ocurre primero.
     local targetCFrame =
         CFrame.new(
@@ -934,35 +992,35 @@ end
 local function ReturnSpawn()
 
     local root = GetRoot()
+    if not root then return false end
 
-    if not root then
-        return false
+    -- Volver exactamente a donde estaba antes del TP al huevo.
+    if ReturnToOriginalPosition and OriginalPositionCFrame then
+        root.CFrame = OriginalPositionCFrame
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+        task.wait()
+        if root.Parent then
+            root.CFrame = OriginalPositionCFrame
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+        end
+        return true
     end
 
-    -- DESTINO FIJO: spawn de entrada asignado al jugador.
-    -- No usar posición actual, huevo, nido ni otro punto.
-    local targetCFrame = EntrySpawnCFrame
-
-    if not targetCFrame then
-        targetCFrame = ResolveEntrySpawn()
-    end
-
-    if not targetCFrame then
-        return false
-    end
+    -- Fallback al respawn de la base.
+    local targetCFrame = EntrySpawnCFrame or ResolveEntrySpawn()
+    if not targetCFrame then return false end
 
     root.CFrame = targetCFrame
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
-
     task.wait()
-
     if root.Parent then
         root.CFrame = targetCFrame
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
     end
-
     return true
 end
 
@@ -1532,6 +1590,30 @@ TPStroke.Parent = TPButton
 -- LOOP
 --==============================================================
 
+--==============================================================
+-- BOTON BASICO: REGRESO A POSICION ANTERIOR
+--==============================================================
+local ReturnButton = Instance.new("TextButton")
+ReturnButton.Name = "ReturnPositionButton"
+ReturnButton.Parent = MainFrame
+ReturnButton.Size = UDim2.new(0, 170, 0, 32)
+ReturnButton.Position = UDim2.new(0.5, -85, 1, -42)
+ReturnButton.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ReturnButton.BorderSizePixel = 0
+ReturnButton.Text = "↩ VOLVER A POSICION: ON"
+ReturnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ReturnButton.TextSize = 14
+ReturnButton.Font = Enum.Font.GothamBold
+
+local ReturnCorner = Instance.new("UICorner")
+ReturnCorner.CornerRadius = UDim.new(0, 8)
+ReturnCorner.Parent = ReturnButton
+
+ReturnButton.Activated:Connect(function()
+    ReturnToOriginalPosition = not ReturnToOriginalPosition
+    ReturnButton.Text = ReturnToOriginalPosition and "↩ VOLVER A POSICION: ON" or "↩ VOLVER A POSICION: OFF"
+end)
+
 local LOPButton =
     Instance.new("TextButton")
 
@@ -2073,7 +2155,7 @@ task.spawn(function()
 
     while ScreenGui.Parent do
 
-        if not LOP and not CycleBusy and not ReturningToRanch then
+        if not CycleBusy and not ReturningToRanch then
             RefreshBestEgg()
             UpdateUI()
         end
