@@ -380,11 +380,19 @@ local function ReturnSpawn()
 
     local root = GetRoot()
 
-    if not root or not SavedSpawnCFrame then
+    if not root then
         return false
     end
 
-    root.CFrame = SavedSpawnCFrame
+    -- Siempre vuelve al SpawnLocation real del jugador.
+    -- NO usa la posición donde estaba antes de iniciar INSTA STEAL.
+    local respawnCFrame = GetRespawnCFrame()
+
+    if not respawnCFrame then
+        return false
+    end
+
+    root.CFrame = respawnCFrame
 
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
