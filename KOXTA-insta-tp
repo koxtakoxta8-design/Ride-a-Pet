@@ -47,6 +47,8 @@ local BestLuck = 0
 -- Evita que el refresco seleccione de nuevo el huevo que se está procesando.
 local CycleBusy = false
 
+local ReturningToRanch = false
+
 --==============================================================
 -- ULTRA EGG RANK
 --==============================================================
@@ -549,7 +551,7 @@ end)
 
 local function RefreshBestEgg()
 
-    if CycleBusy then
+    if CycleBusy or ReturningToRanch then
         return BestEgg
     end
 
@@ -826,26 +828,42 @@ local function ReturnSpawn()
         return false
     end
 
-    -- Preferir el punto real de entrega del huevo dentro del
-    -- rancho propio, en lugar de una posición genérica del plot.
-    local deliveryCFrame = FindRanchDeliveryPoint()
+    -- IMPORTANTE:
+    -- No recalcular BestEgg ni buscar otro huevo durante el regreso.
+    -- Primero intentamos usar el punto de entrega del RANCHO aprendido
+    -- para este servidor. Si no existe, usamos el respawn del mismo rancho.
+    local targetCFrame = FindRanchDeliveryPoint()
 
-    local targetCFrame = deliveryCFrame or SavedSpawnCFrame
+    if not targetCFrame then
+        targetCFrame = SavedSpawnCFrame
+    end
 
     if not targetCFrame then
         return false
     end
 
-    local savedPosition = targetCFrame.Position
+    local targetPosition = targetCFrame.Position
 
-    -- Mantener la protección de 50 studs contra el spawn central.
-    if (savedPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
+    -- Protección contra el spawn central.
+    if (targetPosition - SPAWN_NO_TP_CENTER).Magnitude <= SPAWN_NO_TP_RADIUS then
         return false
     end
 
+    -- Congelar el objetivo de regreso antes de mover al personaje.
+    -- Así ningún cambio de BestEgg puede modificar este TP.
     root.CFrame = targetCFrame
     root.AssemblyLinearVelocity = Vector3.zero
     root.AssemblyAngularVelocity = Vector3.zero
+
+    -- Esperar un frame y reafirmar la misma posición.
+    -- No se hace ningún RefreshBestEgg aquí.
+    task.wait()
+
+    if root.Parent then
+        root.CFrame = targetCFrame
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end
 
     return true
 end
@@ -1695,8 +1713,13 @@ local function DoCycle()
     -- Primero libera el bloqueo del huevo.
     StopEggLock()
 
-    -- Después hace obligatoriamente el TP al spawn guardado.
+    -- Bloquear cualquier nueva selección mientras se completa el regreso.
+    ReturningToRanch = true
+
+    -- Después hace obligatoriamente el TP al rancho guardado.
     local returned = ReturnSpawn()
+
+    ReturningToRanch = false
 
     task.wait(0.15)
 
