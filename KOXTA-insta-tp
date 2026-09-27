@@ -1,13 +1,12 @@
-
 --==============================================================
 -- KOXTA • RIDE A PET
 -- FAST EGG CACHE • LOOP • INSTA TP • BURST x5
 -- ProximityPrompt
 --==============================================================
 
-local Players = game("Players")
-local TweenService = game("TweenService")
-local UIS = game("UserInputService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
 
 local Player = Players.LocalPlayer
 
@@ -27,9 +26,9 @@ local LOGO_ID = "rbxassetid://103645600156879"
 
 -- Zona excluida
 local EXCLUSION_CENTER = Vector3.new(
-146.87,
-40316.12,
-911.14
+    146.87,
+    40316.12,
+    911.14
 )
 
 local EXCLUSION_RADIUS = 210
@@ -41,10 +40,10 @@ local EXCLUSION_RADIUS = 210
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "KOXTA_RIDE_A_PET"
 Gui.ResetOnSpawn = false
-Gui.Parent = Player("PlayerGui")
+Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(285,190)
+Main.Size = UDim2.fromOffset(285, 265)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
@@ -52,94 +51,12 @@ Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Parent = Gui
 
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Thickness = 1.6
-MainStroke.Color = Color3.fromRGB(0, 255, 170)
-MainStroke.Transparency = 0.15
-MainStroke.Parent = Main
-
-local StrokeGradient = Instance.new("UIGradient")
-StrokeGradient.Color = ColorSequence.new({
-ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 170)),
-ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 120, 255)),
-ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 170))
-})
-StrokeGradient.Parent = MainStroke
-
-local BorderAnimation = Instance.new("NumberValue")
-BorderAnimation.Value = 0
-
-task.spawn(function()
-while Gui.Parent do
-BorderAnimation.Value = (BorderAnimation.Value + 0.018) % 1
-StrokeGradient.Rotation = BorderAnimation.Value * 360
-MainStroke.Transparency = 0.08 + math.sin(os.clock() * 2.4) * 0.06
-task.wait(0.03)
-end
-end)
-
-local ParticleLayer = Instance.new("Frame")
-ParticleLayer.Name = "PremiumParticles"
-ParticleLayer.Size = UDim2.fromScale(1, 1)
-ParticleLayer.BackgroundTransparency = 1
-ParticleLayer.ClipsDescendants = true
-ParticleLayer.ZIndex = 0
-ParticleLayer.Parent = Main
-
-task.spawn(function()
-while Gui.Parent do
-local Dot = Instance.new("Frame")
-Dot.Size = UDim2.fromOffset(2, 2)
-Dot.Position = UDim2.new(math.random(), 0, 1, 0)
-Dot.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
-Dot.BackgroundTransparency = 0.15
-Dot.BorderSizePixel = 0
-Dot.ZIndex = 0
-Dot.Parent = ParticleLayer
-
-    local DotCorner = Instance.new("UICorner")
-    DotCorner.CornerRadius = UDim.new(1, 0)
-    DotCorner.Parent = Dot
-
-    task.spawn(function()
-        local startY = Dot.Position.Y.Scale
-        for i = 1, 45 do
-            if not Dot.Parent then return end
-            Dot.Position = UDim2.new(
-                Dot.Position.X.Scale,
-                math.sin((i + os.clock()) * 0.08) * 4,
-                startY - i / 55,
-                0
-            )
-            Dot.BackgroundTransparency = 0.15 + i / 65
-            task.wait(0.03)
-        end
-        Dot:Destroy()
-    end)
-
-    task.wait(0.35)
-end
-
-end)
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0,9)
-Corner.Parent = Main
-
-local Border = Instance.new("UIStroke")
-Border.Color = Color3.fromRGB(0,0,0)
-Border.Thickness = 2
-Border.Parent = Main
-
---==============================================================
--- TOP BAR
---==============================================================
-
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1,0,0,34)
 TopBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
 TopBar.BackgroundTransparency = .12
 TopBar.BorderSizePixel = 0
+TopBar.ZIndex = 10
 TopBar.Parent = Main
 
 local Title = Instance.new("TextLabel")
@@ -151,6 +68,7 @@ Title.TextColor3 = Color3.new(1,1,1)
 Title.TextSize = 12
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 11
 Title.Parent = TopBar
 
 local MinButton = Instance.new("TextButton")
@@ -161,6 +79,7 @@ MinButton.Text = "—"
 MinButton.TextColor3 = Color3.new(1,1,1)
 MinButton.TextSize = 17
 MinButton.Font = Enum.Font.GothamBold
+MinButton.ZIndex = 11
 MinButton.Parent = TopBar
 
 local CloseButton = Instance.new("TextButton")
@@ -171,6 +90,7 @@ CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255,65,65)
 CloseButton.TextSize = 12
 CloseButton.Font = Enum.Font.GothamBold
+CloseButton.ZIndex = 11
 CloseButton.Parent = TopBar
 
 --==============================================================
@@ -178,16 +98,24 @@ CloseButton.Parent = TopBar
 --==============================================================
 
 local Logo = Instance.new("ImageLabel")
-Logo.Size = UDim2.fromOffset(36,36)
-Logo.Position = UDim2.new(1,-47,0,42)
-Logo.BackgroundTransparency = 1
+Logo.Name = "KOXTA_Logo"
+Logo.Size = UDim2.fromOffset(42,42)
+Logo.Position = UDim2.new(1,-50,0,14)
+Logo.BackgroundTransparency = 0.15
+Logo.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Logo.Image = LOGO_ID
 Logo.ScaleType = Enum.ScaleType.Fit
-Logo.Parent = Main
+Logo.ZIndex = 5
 
 local LogoCorner = Instance.new("UICorner")
 LogoCorner.CornerRadius = UDim.new(1,0)
 LogoCorner.Parent = Logo
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Thickness = 1
+LogoStroke.Color = Color3.fromRGB(255,255,255)
+LogoStroke.Transparency = 0.45
+LogoStroke.Parent = Logo
 
 --==============================================================
 -- INFO
@@ -195,7 +123,7 @@ LogoCorner.Parent = Logo
 
 local BestLabel = Instance.new("TextLabel")
 BestLabel.Size = UDim2.new(1,-60,0,23)
-BestLabel.Position = UDim2.fromOffset(11,43)
+BestLabel.Position = UDim2.fromOffset(11,96)
 BestLabel.BackgroundTransparency = 1
 BestLabel.Text = "🏆 Mejor: BUSCANDO..."
 BestLabel.TextColor3 = Color3.new(1,1,1)
@@ -210,7 +138,7 @@ ValueLabel.Parent = Main
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1,-22,0,19)
-StatusLabel.Position = UDim2.fromOffset(11,86)
+StatusLabel.Position = UDim2.fromOffset(11,119)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Estado: LISTO"
 StatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
@@ -219,8 +147,8 @@ StatusLabel.Font = Enum.Font.Gotham
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.Parent = Main
 
-Player.CharacterAdded(function()
-CachedPlotPosition = nil
+Player.CharacterAdded:Connect(function()
+    CachedPlotPosition = nil
 end)
 
 --==============================================================
@@ -229,10 +157,10 @@ end)
 
 local LoopButton = Instance.new("TextButton")
 LoopButton.Size = UDim2.fromOffset(126,34)
-LoopButton.Position = UDim2.fromOffset(11,116)
+LoopButton.Position = UDim2.fromOffset(11,145)
 LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 LoopButton.BorderSizePixel = 0
-LoopButton.Text = "LOOP • OFF"
+LoopButton.Text = "LOOP  •  OFF"
 LoopButton.TextColor3 = Color3.new(1,1,1)
 LoopButton.TextSize = 11
 LoopButton.Font = Enum.Font.GothamBold
@@ -253,7 +181,7 @@ LoopStroke.Parent = LoopButton
 
 local InstaButton = Instance.new("TextButton")
 InstaButton.Size = UDim2.fromOffset(126,34)
-InstaButton.Position = UDim2.fromOffset(148,116)
+InstaButton.Position = UDim2.fromOffset(148,145)
 InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 InstaButton.BorderSizePixel = 0
 InstaButton.Text = "INSTA TP"
@@ -277,9 +205,9 @@ InstaStroke.Parent = InstaButton
 
 local BurstLabel = Instance.new("TextLabel")
 BurstLabel.Size = UDim2.new(1,-22,0,18)
-BurstLabel.Position = UDim2.fromOffset(11,155)
+BurstLabel.Position = UDim2.fromOffset(11,184)
 BurstLabel.BackgroundTransparency = 1
-BurstLabel.Text = "RÁFAGA: x5 • HUEVOS: 0"
+BurstLabel.Text = "RÁFAGA: x5  •  HUEVOS: 0"
 BurstLabel.TextColor3 = Color3.fromRGB(150,150,150)
 BurstLabel.TextSize = 9
 BurstLabel.Font = Enum.Font.Gotham
@@ -291,87 +219,82 @@ BurstLabel.Parent = Main
 --==============================================================
 
 local function GetRoot()
-local Character = Player.Character
-if not Character then
-return nil
-end
+    local Character = Player.Character
+    if not Character then
+        return nil
+    end
 
-return Character:FindFirstChild("HumanoidRootPart")
-
+    return Character:FindFirstChild("HumanoidRootPart")
 end
 
 local function GetPosition(Object)
-if not Object then
-return nil
-end
-
-if Object:IsA("BasePart") then
-    return Object.Position
-end
-
-if Object:IsA("Model") then
-    if Object.PrimaryPart then
-        return Object.PrimaryPart.Position
+    if not Object then
+        return nil
     end
 
-    -- One-time fallback. RegisterEgg stores the result, so this is
-    -- not repeated on every selector pass.
-    local Part = Object:FindFirstChildWhichIsA("BasePart", true)
-    return Part and Part.Position
-end
+    if Object:IsA("BasePart") then
+        return Object.Position
+    end
 
-return nil
+    if Object:IsA("Model") then
+        if Object.PrimaryPart then
+            return Object.PrimaryPart.Position
+        end
 
+        -- One-time fallback. RegisterEgg stores the result, so this is
+        -- not repeated on every selector pass.
+        local Part = Object:FindFirstChildWhichIsA("BasePart", true)
+        return Part and Part.Position
+    end
+
+    return nil
 end
 
 local function IsExcluded(Position)
 
-if not Position then
-    return true
-end
+    if not Position then
+        return true
+    end
 
-local X = math.abs(
-    Position.X - EXCLUSION_CENTER.X
-)
+    local X = math.abs(
+        Position.X - EXCLUSION_CENTER.X
+    )
 
-local Z = math.abs(
-    Position.Z - EXCLUSION_CENTER.Z
-)
+    local Z = math.abs(
+        Position.Z - EXCLUSION_CENTER.Z
+    )
 
-return X <= EXCLUSION_RADIUS
-   and Z <= EXCLUSION_RADIUS
-
+    return X <= EXCLUSION_RADIUS
+       and Z <= EXCLUSION_RADIUS
 end
 
 local function IsEgg(Object)
-if not Object then
-return false
-end
+    if not Object then
+        return false
+    end
 
-if Object:IsA("ProximityPrompt") then
-    return GetEggFromPrompt(Object) ~= nil
-end
+    if Object:IsA("ProximityPrompt") then
+        return GetEggFromPrompt(Object) ~= nil
+    end
 
-return LooksLikeEggName(Object.Name)
-    or Object:GetAttribute("IsEgg") == true
-    or Object:GetAttribute("Egg") == true
-
+    return LooksLikeEggName(Object.Name)
+        or Object:GetAttribute("IsEgg") == true
+        or Object:GetAttribute("Egg") == true
 end
 
 local function FindPrompt(Object)
-if not Object then
-return nil
-end
+    if not Object then
+        return nil
+    end
 
-if Object:IsA("ProximityPrompt") then
-    return Object
-end
+    if Object:IsA("ProximityPrompt") then
+        return Object
+    end
 
-return Object:FindFirstChildWhichIsA(
-    "ProximityPrompt",
-    true
-)
-
+    return Object:FindFirstChildWhichIsA(
+        "ProximityPrompt",
+        true
+    )
 end
 
 --==============================================================
@@ -379,44 +302,43 @@ end
 --==============================================================
 
 local function GetValue(Object)
-if not Object then
-return 0
-end
-
--- Prefer direct attributes: cheap and stable.
-local AttributeNames = {
-    "Luck",
-    "luck",
-    "EggLuck",
-    "RarityValue",
-    "Value",
-    "Price"
-}
-
-for _, Name in ipairs(AttributeNames) do
-    local Value = Object:GetAttribute(Name)
-    if typeof(Value) == "number" then
-        return Value
+    if not Object then
+        return 0
     end
-end
 
--- Only inspect direct children. Never recursively scan the whole egg
--- during the selector loop.
-for _, Item in ipairs(Object:GetChildren()) do
-    if Item:IsA("NumberValue") or Item:IsA("IntValue") then
-        local Name = Item.Name:lower()
+    -- Prefer direct attributes: cheap and stable.
+    local AttributeNames = {
+        "Luck",
+        "luck",
+        "EggLuck",
+        "RarityValue",
+        "Value",
+        "Price"
+    }
 
-        if Name:find("luck", 1, true)
-        or Name:find("rarity", 1, true)
-        or Name:find("value", 1, true)
-        or Name:find("price", 1, true) then
-            return Item.Value
+    for _, Name in ipairs(AttributeNames) do
+        local Value = Object:GetAttribute(Name)
+        if typeof(Value) == "number" then
+            return Value
         end
     end
-end
 
-return 0
+    -- Only inspect direct children. Never recursively scan the whole egg
+    -- during the selector loop.
+    for _, Item in ipairs(Object:GetChildren()) do
+        if Item:IsA("NumberValue") or Item:IsA("IntValue") then
+            local Name = Item.Name:lower()
 
+            if Name:find("luck", 1, true)
+            or Name:find("rarity", 1, true)
+            or Name:find("value", 1, true)
+            or Name:find("price", 1, true) then
+                return Item.Value
+            end
+        end
+    end
+
+    return 0
 end
 
 --==============================================================
@@ -424,40 +346,39 @@ end
 --==============================================================
 
 local EggPriority = {
-["White Egg"] = 1, ["Brown Egg"] = 5, ["Cracked Egg"] = 30,
-["Easter Egg"] = 50, ["Stone Egg"] = 100, ["Leaf Egg"] = 200,
-["Mushroom Egg"] = 500, ["Flower Egg"] = 750, ["Slime Egg"] = 1000,
-["Ice Egg"] = 3000, ["Glass Egg"] = 10000, ["Golden Egg"] = 30000,
-["Crystal Egg"] = 150000, ["Skull Egg"] = 250000,
-["Dominus Egg"] = 700000, ["Flaming Egg"] = 1000000,
-["Sinister Egg"] = 3000000, ["Soul Egg"] = 7000000,
-["Aurora Egg"] = 300000000, ["Galaxy Egg"] = 1500000000,
-["Blackhole Egg"] = 100000000000, ["Solaris Egg"] = 300000000000,
-["Cherub Egg"] = 1000000000000, ["Volcanic Egg"] = 2500000000000
+    ["White Egg"] = 1, ["Brown Egg"] = 5, ["Cracked Egg"] = 30,
+    ["Easter Egg"] = 50, ["Stone Egg"] = 100, ["Leaf Egg"] = 200,
+    ["Mushroom Egg"] = 500, ["Flower Egg"] = 750, ["Slime Egg"] = 1000,
+    ["Ice Egg"] = 3000, ["Glass Egg"] = 10000, ["Golden Egg"] = 30000,
+    ["Crystal Egg"] = 150000, ["Skull Egg"] = 250000,
+    ["Dominus Egg"] = 700000, ["Flaming Egg"] = 1000000,
+    ["Sinister Egg"] = 3000000, ["Soul Egg"] = 7000000,
+    ["Aurora Egg"] = 300000000, ["Galaxy Egg"] = 1500000000,
+    ["Blackhole Egg"] = 100000000000, ["Solaris Egg"] = 300000000000,
+    ["Cherub Egg"] = 1000000000000, ["Volcanic Egg"] = 2500000000000
 }
 
 local function GetEggPriority(Object)
-return Object and EggPriority[Object.Name] or 0
+    return Object and EggPriority[Object.Name] or 0
 end
 
 local function LooksLikeEggName(name)
-return EggPriority[tostring(name or "")] ~= nil
+    return EggPriority[tostring(name or "")] ~= nil
 end
 
 local function GetEggFromPrompt(Prompt)
-if not Prompt then return nil end
-local current = Prompt.Parent
+    if not Prompt then return nil end
+    local current = Prompt.Parent
 
-for _ = 1, 12 do
-    if not current then break end
-    if LooksLikeEggName(current.Name) then
-        return current
+    for _ = 1, 12 do
+        if not current then break end
+        if LooksLikeEggName(current.Name) then
+            return current
+        end
+        current = current.Parent
     end
-    current = current.Parent
-end
 
-return nil
-
+    return nil
 end
 
 --==============================================================
@@ -471,139 +392,136 @@ local EggCache = {}
 local CachedPlotPosition = nil
 
 local function RegisterEgg(Object)
-if not Object or not Object.Parent then
-return false
-end
-
-local Egg = Object
-
-if Object:IsA("ProximityPrompt") then
-    local Current = Object.Parent
-
-    for _ = 1, 12 do
-        if not Current then
-            break
-        end
-
-        if EggPriority[Current.Name] then
-            Egg = Current
-            break
-        end
-
-        Current = Current.Parent
+    if not Object or not Object.Parent then
+        return false
     end
-end
 
-if not Egg
-or not Egg.Parent
-or not EggPriority[Egg.Name] then
-    return false
-end
+    local Egg = Object
 
-local EggType = Egg.Name
+    if Object:IsA("ProximityPrompt") then
+        local Current = Object.Parent
 
--- Ya tenemos un representante válido de este tipo.
-if EggByType[EggType]
-and EggByType[EggType].Object
-and EggByType[EggType].Object.Parent then
-    return false
-end
+        for _ = 1, 12 do
+            if not Current then
+                break
+            end
 
-local Position = GetPosition(Egg)
+            if EggPriority[Current.Name] then
+                Egg = Current
+                break
+            end
 
-if not Position or IsExcluded(Position) then
-    return false
-end
+            Current = Current.Parent
+        end
+    end
 
-local Prompt = FindPrompt(Egg)
+    if not Egg
+    or not Egg.Parent
+    or not EggPriority[Egg.Name] then
+        return false
+    end
 
-if not Prompt then
-    return false
-end
+    local EggType = Egg.Name
 
-local Priority = EggPriority[EggType]
+    -- Ya tenemos un representante válido de este tipo.
+    if EggByType[EggType]
+    and EggByType[EggType].Object
+    and EggByType[EggType].Object.Parent then
+        return false
+    end
 
-local Data = {
-    Object = Egg,
-    Position = Position,
-    Prompt = Prompt,
-    Value = Priority,
-    Priority = Priority,
-    EggType = EggType
-}
+    local Position = GetPosition(Egg)
 
-EggByType[EggType] = Data
-EggCache[Egg] = Data
+    if not Position or IsExcluded(Position) then
+        return false
+    end
 
-return true
+    local Prompt = FindPrompt(Egg)
 
+    if not Prompt then
+        return false
+    end
+
+    local Priority = EggPriority[EggType]
+
+    local Data = {
+        Object = Egg,
+        Position = Position,
+        Prompt = Prompt,
+        Value = Priority,
+        Priority = Priority,
+        EggType = EggType
+    }
+
+    EggByType[EggType] = Data
+    EggCache[Egg] = Data
+
+    return true
 end
 
 local function RemoveEgg(Egg)
-if not Egg then
-return
-end
+    if not Egg then
+        return
+    end
 
-local EggType = Egg.Name
-local Data = EggByType[EggType]
+    local EggType = Egg.Name
+    local Data = EggByType[EggType]
 
-if Data and Data.Object == Egg then
-    EggByType[EggType] = nil
-    EggCache[Egg] = nil
+    if Data and Data.Object == Egg then
+        EggByType[EggType] = nil
+        EggCache[Egg] = nil
 
-    -- Si todavía existe otro del mismo tipo, toma SOLO uno.
-    task.defer(function()
-        if EggByType[EggType] then
-            return
-        end
+        -- Si todavía existe otro del mismo tipo, toma SOLO uno.
+        task.defer(function()
+            if EggByType[EggType] then
+                return
+            end
 
-        for _, Candidate in ipairs(workspace:GetDescendants()) do
-            if Candidate ~= Egg
-            and Candidate.Parent
-            and Candidate.Name == EggType then
-                if RegisterEgg(Candidate) then
-                    break
+            for _, Candidate in ipairs(workspace:GetDescendants()) do
+                if Candidate ~= Egg
+                and Candidate.Parent
+                and Candidate.Name == EggType then
+                    if RegisterEgg(Candidate) then
+                        break
+                    end
                 end
             end
-        end
-    end)
-end
-
-end
-
-local function RebuildCache()
-table.clear(EggByType)
-table.clear(EggCache)
-
--- Un único escaneo inicial.
--- En cuanto ya existe un tipo, los duplicados se ignoran.
-for _, Object in ipairs(workspace:GetDescendants()) do
-    if EggPriority[Object.Name]
-    and not EggByType[Object.Name] then
-        RegisterEgg(Object)
+        end)
     end
 end
 
+local function RebuildCache()
+    table.clear(EggByType)
+    table.clear(EggCache)
+
+    -- Un único escaneo inicial.
+    -- En cuanto ya existe un tipo, los duplicados se ignoran.
+    for _, Object in ipairs(workspace:GetDescendants()) do
+        if EggPriority[Object.Name]
+        and not EggByType[Object.Name] then
+            RegisterEgg(Object)
+        end
+    end
 end
 
 --==============================================================
 -- EVENTOS: SOLO MANTENER 1 POR TIPO
 --==============================================================
 
-workspace.DescendantAdded(function(Object)
-if EggPriority[Object.Name]
-and not EggByType[Object.Name] then
-task.defer(function()
-RegisterEgg(Object)
-end)
-end
+workspace.DescendantAdded:Connect(function(Object)
+    if EggPriority[Object.Name]
+    and not EggByType[Object.Name] then
+        task.defer(function()
+            RegisterEgg(Object)
+        end)
+    end
 end)
 
-workspace.DescendantRemoving(function(Object)
-if EggByType[Object.Name]
-and EggByType[Object.Name].Object == Object then
-RemoveEgg(Object)
-end
+workspace.DescendantRemoving:Connect(function(Object)
+    if EggByType[Object.Name]
+    and EggByType[Object.Name].Object == Object then
+        RemoveEgg(Object)
+    end
 end)
 
 --==============================================================
@@ -611,34 +529,33 @@ end)
 --==============================================================
 
 local function GetDetectedTypeCount()
-local Count = 0
-for _ in pairs(EggByType) do
-Count += 1
-end
-return Count
+    local Count = 0
+    for _ in pairs(EggByType) do
+        Count += 1
+    end
+    return Count
 end
 
 local function FindBestEggFast()
-local Best = nil
-local Highest = -math.huge
+    local Best = nil
+    local Highest = -math.huge
 
-for EggType, Data in pairs(EggByType) do
-    local Object = Data.Object
+    for EggType, Data in pairs(EggByType) do
+        local Object = Data.Object
 
-    if not Object or not Object.Parent then
-        EggByType[EggType] = nil
-        EggCache[Object] = nil
-    else
-        local Priority = EggPriority[EggType] or 0
-        if Priority > Highest then
-            Highest = Priority
-            Best = Data
+        if not Object or not Object.Parent then
+            EggByType[EggType] = nil
+            EggCache[Object] = nil
+        else
+            local Priority = EggPriority[EggType] or 0
+            if Priority > Highest then
+                Highest = Priority
+                Best = Data
+            end
         end
     end
-end
 
-return Best
-
+    return Best
 end
 
 --==============================================================
@@ -647,19 +564,18 @@ end
 
 local function Teleport(Position)
 
-local Root = GetRoot()
+    local Root = GetRoot()
 
-if not Root then
-    return false
-end
+    if not Root then
+        return false
+    end
 
-Root.CFrame =
-    CFrame.new(
-        Position + EGG_OFFSET
-    )
+    Root.CFrame =
+        CFrame.new(
+            Position + EGG_OFFSET
+        )
 
-return true
-
+    return true
 end
 
 --==============================================================
@@ -667,116 +583,112 @@ end
 --==============================================================
 
 local function WaitForPrompt(EggObject, Timeout)
-local Deadline = os.clock() + (Timeout or 0.8)
+    local Deadline = os.clock() + (Timeout or 0.8)
 
-while EggObject and EggObject.Parent and os.clock() < Deadline do
-    local Prompt = FindPrompt(EggObject)
-    if Prompt and Prompt.Parent then
-        return Prompt
+    while EggObject and EggObject.Parent and os.clock() < Deadline do
+        local Prompt = FindPrompt(EggObject)
+        if Prompt and Prompt.Parent then
+            return Prompt
+        end
+        task.wait(0.05)
     end
-    task.wait(0.05)
-end
 
-return nil
-
+    return nil
 end
 
 local function ActivatePrompt(Prompt)
-if not Prompt or not Prompt.Parent then
-return false
-end
+    if not Prompt or not Prompt.Parent then
+        return false
+    end
 
-if typeof(fireproximityprompt) == "function" then
+    if typeof(fireproximityprompt) == "function" then
+        local ok = pcall(function()
+            Prompt.HoldDuration = 0
+            fireproximityprompt(Prompt)
+        end)
+        if ok then
+            return true
+        end
+    end
+
     local ok = pcall(function()
         Prompt.HoldDuration = 0
-        fireproximityprompt(Prompt)
+        Prompt:InputHoldBegin()
+        task.wait(PROMPT_DELAY)
+        Prompt:InputHoldEnd()
     end)
-    if ok then
-        return true
-    end
-end
 
-local ok = pcall(function()
-    Prompt.HoldDuration = 0
-    Prompt:InputHoldBegin()
-    task.wait(PROMPT_DELAY)
-    Prompt:InputHoldEnd()
-end)
-
-return ok
-
+    return ok
 end
 
 local function WaitUntilCollected(EggObject, Timeout)
-local Deadline = os.clock() + (Timeout or 0.65)
+    local Deadline = os.clock() + (Timeout or 0.65)
 
-while EggObject
-and EggObject.Parent
-and os.clock() < Deadline do
-    task.wait(0.05)
-end
+    while EggObject
+    and EggObject.Parent
+    and os.clock() < Deadline do
+        task.wait(0.05)
+    end
 
-return not EggObject or not EggObject.Parent
-
+    return not EggObject or not EggObject.Parent
 end
 
 local function BurstCollect(Egg)
-if not Egg or not Egg.Object or not Egg.Object.Parent then
-return false
-end
-
-local Activated = false
-
--- No hacemos 5 disparos seguidos. Primero intentamos recoger una vez.
--- Si el juego no procesó la recogida, reintentamos después de esperar.
-for i = 1, BURST_COUNT do
-    if not Egg.Object or not Egg.Object.Parent then
-        return true
+    if not Egg or not Egg.Object or not Egg.Object.Parent then
+        return false
     end
 
-    local Prompt = FindPrompt(Egg.Object)
+    local Activated = false
 
-    if not Prompt or not Prompt.Parent then
-        Prompt = WaitForPrompt(Egg.Object, 0.25)
+    -- No hacemos 5 disparos seguidos. Primero intentamos recoger una vez.
+    -- Si el juego no procesó la recogida, reintentamos después de esperar.
+    for i = 1, BURST_COUNT do
+        if not Egg.Object or not Egg.Object.Parent then
+            return true
+        end
+
+        local Prompt = FindPrompt(Egg.Object)
+
+        if not Prompt or not Prompt.Parent then
+            Prompt = WaitForPrompt(Egg.Object, 0.25)
+        end
+
+        if not Prompt then
+            task.wait(0.08)
+            continue
+        end
+
+        Egg.Prompt = Prompt
+        StatusLabel.Text = "Estado: AUTO GRAB " .. i .. "/" .. BURST_COUNT
+
+        -- Esperar hasta que el prompt esté realmente habilitado.
+        local ReadyDeadline = os.clock() + 0.18
+
+        while Prompt.Parent
+        and not Prompt.Enabled
+        and os.clock() < ReadyDeadline do
+            task.wait(0.03)
+        end
+
+        if not Prompt.Parent then
+            continue
+        end
+
+        if ActivatePrompt(Prompt) then
+            Activated = true
+        end
+
+        -- Importante: no volver a disparar inmediatamente.
+        -- Dejamos que el juego procese la recogida.
+        if WaitUntilCollected(Egg.Object, 0.45) then
+            return true
+        end
+
+        -- Sigue existiendo: refrescar prompt y probar nuevamente.
+        task.wait(0.04)
     end
 
-    if not Prompt then
-        task.wait(0.08)
-        continue
-    end
-
-    Egg.Prompt = Prompt
-    StatusLabel.Text = "Estado: AUTO GRAB " .. i .. "/" .. BURST_COUNT
-
-    -- Esperar hasta que el prompt esté realmente habilitado.
-    local ReadyDeadline = os.clock() + 0.18
-
-    while Prompt.Parent
-    and not Prompt.Enabled
-    and os.clock() < ReadyDeadline do
-        task.wait(0.03)
-    end
-
-    if not Prompt.Parent then
-        continue
-    end
-
-    if ActivatePrompt(Prompt) then
-        Activated = true
-    end
-
-    -- Importante: no volver a disparar inmediatamente.
-    -- Dejamos que el juego procese la recogida.
-    if WaitUntilCollected(Egg.Object, 0.45) then
-        return true
-    end
-
-    -- Sigue existiendo: refrescar prompt y probar nuevamente.
-    task.wait(0.04)
-end
-
-return Activated and (not Egg.Object or not Egg.Object.Parent)
-
+    return Activated and (not Egg.Object or not Egg.Object.Parent)
 end
 
 --==============================================================
@@ -785,85 +697,83 @@ end
 
 local function IsMyPlot(Object)
 
-for _,Name in ipairs({
-    "Owner",
-    "owner",
-    "OwnerName",
-    "ownerName"
-}) do
+    for _,Name in ipairs({
+        "Owner",
+        "owner",
+        "OwnerName",
+        "ownerName"
+    }) do
 
-    local Attribute =
-        Object:GetAttribute(Name)
+        local Attribute =
+            Object:GetAttribute(Name)
 
-    if Attribute ~= nil then
+        if Attribute ~= nil then
 
-        if tostring(Attribute)
-            == Player.Name
-        or tostring(Attribute)
-            == tostring(Player.UserId) then
+            if tostring(Attribute)
+                == Player.Name
+            or tostring(Attribute)
+                == tostring(Player.UserId) then
 
-            return true
-        end
-    end
-
-    local Value =
-        Object:FindFirstChild(
-            Name,
-            true
-        )
-
-    if Value then
-
-        if Value:IsA("StringValue")
-        and Value.Value == Player.Name then
-
-            return true
+                return true
+            end
         end
 
-        if Value:IsA("IntValue")
-        and Value.Value == Player.UserId then
+        local Value =
+            Object:FindFirstChild(
+                Name,
+                true
+            )
 
-            return true
-        end
+        if Value then
 
-        if Value:IsA("ObjectValue")
-        and Value.Value == Player then
+            if Value:IsA("StringValue")
+            and Value.Value == Player.Name then
 
-            return true
-        end
-    end
-end
+                return true
+            end
 
-return false
+            if Value:IsA("IntValue")
+            and Value.Value == Player.UserId then
 
-end
+                return true
+            end
 
-local function FindMyPlot()
-if CachedPlotPosition then
-return CachedPlotPosition
-end
+            if Value:IsA("ObjectValue")
+            and Value.Value == Player then
 
--- Only the first lookup scans Workspace.
-for _, Object in ipairs(workspace:GetDescendants()) do
-    local Name = Object.Name:lower()
-
-    if Name:find("plot", 1, true)
-    or Name:find("tycoon", 1, true)
-    or Name:find("base", 1, true) then
-
-        if IsMyPlot(Object) then
-            local Position = GetPosition(Object)
-
-            if Position then
-                CachedPlotPosition = Position
-                return Position
+                return true
             end
         end
     end
+
+    return false
 end
 
-return nil
+local function FindMyPlot()
+    if CachedPlotPosition then
+        return CachedPlotPosition
+    end
 
+    -- Only the first lookup scans Workspace.
+    for _, Object in ipairs(workspace:GetDescendants()) do
+        local Name = Object.Name:lower()
+
+        if Name:find("plot", 1, true)
+        or Name:find("tycoon", 1, true)
+        or Name:find("base", 1, true) then
+
+            if IsMyPlot(Object) then
+                local Position = GetPosition(Object)
+
+                if Position then
+                    CachedPlotPosition = Position
+                    return Position
+                end
+            end
+        end
+    end
+
+    return nil
 end
 
 --==============================================================
@@ -871,139 +781,136 @@ end
 --==============================================================
 
 local function RunOnce()
-if BUSY then return false end
-BUSY = true
+    if BUSY then return false end
+    BUSY = true
 
-StatusLabel.Text = "Estado: BUSCANDO"
+    StatusLabel.Text = "Estado: BUSCANDO"
 
-local Egg = FindBestEggFast()
+    local Egg = FindBestEggFast()
 
-if not Egg then
-    BestLabel.Text = "🏆 Mejor: NINGUNO"
-    StatusLabel.Text = "Estado: SIN HUEVO"
-    BUSY = false
-    return false
-end
-
-BestLabel.Text = "🏆 Mejor: " .. Egg.Object.Name
-
-local Position = GetPosition(Egg.Object)
-if not Position then
-    StatusLabel.Text = "Estado: ACTUALIZANDO HUEVO"
-    BUSY = false
-    return false
-end
-
-Egg.Position = Position
-
-if IsExcluded(Position) then
-    StatusLabel.Text = "Estado: HUEVO EXCLUIDO"
-    BUSY = false
-    return false
-end
-
-StatusLabel.Text = "Estado: TP AL HUEVO"
-
-if not Teleport(Position) then
-    StatusLabel.Text = "Estado: TP FALLÓ"
-    BUSY = false
-    return false
-end
-
-task.wait(0.025)
-
-local Collected = BurstCollect(Egg)
-
-if not Egg.Object.Parent then
-    if EggByType[Egg.EggType]
-    and EggByType[Egg.EggType].Object == Egg.Object then
-        EggByType[Egg.EggType] = nil
+    if not Egg then
+        BestLabel.Text = "🏆 Mejor: NINGUNO"
+        StatusLabel.Text = "Estado: SIN HUEVO"
+        BUSY = false
+        return false
     end
-    EggCache[Egg.Object] = nil
-end
 
-task.wait(0.015)
+    BestLabel.Text = "🏆 Mejor: " .. Egg.Object.Name
 
-local Plot = FindMyPlot()
-if Plot then
-    StatusLabel.Text = "Estado: TP AL PLOT"
-    Teleport(Plot)
-    task.wait(0.03)
-    StatusLabel.Text = Collected
-        and "Estado: COMPLETADO"
-        or "Estado: AUTO GRAB NO CONFIRMADO"
-else
-    StatusLabel.Text = Collected
-        and "Estado: HUEVO RECOGIDO"
-        or "Estado: AUTO GRAB NO CONFIRMADO"
-end
+    local Position = GetPosition(Egg.Object)
+    if not Position then
+        StatusLabel.Text = "Estado: ACTUALIZANDO HUEVO"
+        BUSY = false
+        return false
+    end
 
-BUSY = false
-return Collected
+    Egg.Position = Position
 
+    if IsExcluded(Position) then
+        StatusLabel.Text = "Estado: HUEVO EXCLUIDO"
+        BUSY = false
+        return false
+    end
+
+    StatusLabel.Text = "Estado: TP AL HUEVO"
+
+    if not Teleport(Position) then
+        StatusLabel.Text = "Estado: TP FALLÓ"
+        BUSY = false
+        return false
+    end
+
+    task.wait(0.025)
+
+    local Collected = BurstCollect(Egg)
+
+    if not Egg.Object.Parent then
+        if EggByType[Egg.EggType]
+        and EggByType[Egg.EggType].Object == Egg.Object then
+            EggByType[Egg.EggType] = nil
+        end
+        EggCache[Egg.Object] = nil
+    end
+
+    task.wait(0.015)
+
+    local Plot = FindMyPlot()
+    if Plot then
+        StatusLabel.Text = "Estado: TP AL PLOT"
+        Teleport(Plot)
+        task.wait(0.03)
+        StatusLabel.Text = Collected
+            and "Estado: COMPLETADO"
+            or "Estado: AUTO GRAB NO CONFIRMADO"
+    else
+        StatusLabel.Text = Collected
+            and "Estado: HUEVO RECOGIDO"
+            or "Estado: AUTO GRAB NO CONFIRMADO"
+    end
+
+    BUSY = false
+    return Collected
 end
 
 --==============================================================
 -- LOOP
 --==============================================================
 
-LoopButton.MouseButton1Click(function()
+LoopButton.MouseButton1Click:Connect(function()
 
-LOOP = not LOOP
+    LOOP = not LOOP
 
-if LOOP then
+    if LOOP then
 
-    LoopButton.Text =
-        "LOOP  •  ON"
+        LoopButton.Text =
+            "LOOP  •  ON"
 
-    LoopButton.BackgroundColor3 =
-        Color3.fromRGB(
-            0,
-            100,
-            50
-        )
+        LoopButton.BackgroundColor3 =
+            Color3.fromRGB(
+                0,
+                100,
+                50
+            )
 
-    task.spawn(function()
+        task.spawn(function()
 
-        while LOOP
-        and Gui.Parent do
+            while LOOP
+            and Gui.Parent do
 
-            RunOnce()
+                RunOnce()
 
-            task.wait(LOOP_DELAY)
-        end
+                task.wait(LOOP_DELAY)
+            end
 
-    end)
+        end)
 
-else
+    else
 
-    LoopButton.Text =
-        "LOOP  •  OFF"
+        LoopButton.Text =
+            "LOOP  •  OFF"
 
-    LoopButton.BackgroundColor3 =
-        Color3.fromRGB(
-            18,
-            18,
-            18
-        )
+        LoopButton.BackgroundColor3 =
+            Color3.fromRGB(
+                18,
+                18,
+                18
+            )
 
-    StatusLabel.Text =
-        "Estado: LOOP DETENIDO"
-end
-
+        StatusLabel.Text =
+            "Estado: LOOP DETENIDO"
+    end
 end)
 
 --==============================================================
 -- INSTA TP
 --==============================================================
 
-InstaButton.MouseButton1Click(function()
-if BUSY then
-return
-end
+InstaButton.MouseButton1Click:Connect(function()
+    if BUSY then
+        return
+    end
 
-task.spawn(RunOnce)
-
+    task.spawn(RunOnce)
 end)
 
 --==============================================================
@@ -1011,18 +918,17 @@ end)
 --==============================================================
 
 task.spawn(function()
-while Gui.Parent do
-if not BUSY then
-local Egg = FindBestEggFast()
-if Egg and Egg.Object and Egg.Object.Parent then
-BestLabel.Text = "🏆 Mejor: " .. Egg.Object.Name
-end
-end
+    while Gui.Parent do
+        if not BUSY then
+            local Egg = FindBestEggFast()
+            if Egg and Egg.Object and Egg.Object.Parent then
+                BestLabel.Text = "🏆 Mejor: " .. Egg.Object.Name
+            end
+        end
 
-    BurstLabel.Text = "RÁFAGA: x5"
-    task.wait(1.0)
-end
-
+        BurstLabel.Text = "RÁFAGA: x5"
+        task.wait(1.0)
+    end
 end)
 
 --==============================================================
@@ -1032,7 +938,7 @@ end)
 RebuildCache()
 
 StatusLabel.Text =
-"Estado: LISTO • DETECTOR ACTIVO"
+    "Estado: LISTO • DETECTOR ACTIVO"
 
 --==============================================================
 -- MINIMIZAR / RESTAURAR
@@ -1041,71 +947,69 @@ StatusLabel.Text =
 local Minimized = false
 
 local FullSize =
-UDim2.fromOffset(285,190)
+    UDim2.fromOffset(285,265)
 
 local BarSize =
-UDim2.fromOffset(285,34)
+    UDim2.fromOffset(285,34)
 
 local FullPosition =
-Main.Position
+    Main.Position
 
-MinButton.MouseButton1Click(function()
+MinButton.MouseButton1Click:Connect(function()
 
-if not Minimized then
+    if not Minimized then
 
-    Minimized = true
+        Minimized = true
 
-    TweenService:Create(
-        Main,
-        TweenInfo.new(
-            .35,
-            Enum.EasingStyle.Quart,
-            Enum.EasingDirection.Out
-        ),
-        {
-            Size = BarSize,
+        TweenService:Create(
+            Main,
+            TweenInfo.new(
+                .35,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = BarSize,
 
-            Position =
-                UDim2.new(
-                    FullPosition.X.Scale,
-                    FullPosition.X.Offset,
-                    0,
-                    10
-                )
-        }
-    ):Play()
+                Position =
+                    UDim2.new(
+                        FullPosition.X.Scale,
+                        FullPosition.X.Offset,
+                        0,
+                        10
+                    )
+            }
+        ):Play()
 
-else
+    else
 
-    Minimized = false
+        Minimized = false
 
-    TweenService:Create(
-        Main,
-        TweenInfo.new(
-            .35,
-            Enum.EasingStyle.Quart,
-            Enum.EasingDirection.Out
-        ),
-        {
-            Size = FullSize,
-            Position = FullPosition
-        }
-    ):Play()
-end
-
+        TweenService:Create(
+            Main,
+            TweenInfo.new(
+                .35,
+                Enum.EasingStyle.Quart,
+                Enum.EasingDirection.Out
+            ),
+            {
+                Size = FullSize,
+                Position = FullPosition
+            }
+        ):Play()
+    end
 end)
 
 --==============================================================
 -- CERRAR
 --==============================================================
 
-CloseButton.MouseButton1Click(function()
+CloseButton.MouseButton1Click:Connect(function()
 
-LOOP = false
-BUSY = false
+    LOOP = false
+    BUSY = false
 
-Gui:Destroy()
-
+    Gui:Destroy()
 end)
 
 --==============================================================
@@ -1116,57 +1020,54 @@ local Dragging = false
 local DragStart
 local StartPosition
 
-TopBar.InputBegan(function(Input)
+TopBar.InputBegan:Connect(function(Input)
 
-if Input.UserInputType ==
-    Enum.UserInputType.MouseButton1
-    or Input.UserInputType ==
-    Enum.UserInputType.Touch then
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or Input.UserInputType ==
+        Enum.UserInputType.Touch then
 
-    Dragging = true
-    DragStart = Input.Position
-    StartPosition = Main.Position
-end
-
-end)
-
-TopBar.InputEnded(function(Input)
-
-if Input.UserInputType ==
-    Enum.UserInputType.MouseButton1
-    or Input.UserInputType ==
-    Enum.UserInputType.Touch then
-
-    Dragging = false
-end
-
-end)
-
-UIS.InputChanged(function(Input)
-
-if not Dragging then
-    return
-end
-
-if Input.UserInputType ==
-    Enum.UserInputType.MouseMovement
-    or Input.UserInputType ==
-    Enum.UserInputType.Touch then
-
-    local Delta =
-        Input.Position - DragStart
-
-    Main.Position =
-        UDim2.new(
-            StartPosition.X.Scale,
-            StartPosition.X.Offset + Delta.X,
-            StartPosition.Y.Scale,
-            StartPosition.Y.Offset + Delta.Y
-        )
-
-    if not Minimized then
-        FullPosition = Main.Position
+        Dragging = true
+        DragStart = Input.Position
+        StartPosition = Main.Position
     end
-end
+end)
 
+TopBar.InputEnded:Connect(function(Input)
+
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+        or Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        Dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(Input)
+
+    if not Dragging then
+        return
+    end
+
+    if Input.UserInputType ==
+        Enum.UserInputType.MouseMovement
+        or Input.UserInputType ==
+        Enum.UserInputType.Touch then
+
+        local Delta =
+            Input.Position - DragStart
+
+        Main.Position =
+            UDim2.new(
+                StartPosition.X.Scale,
+                StartPosition.X.Offset + Delta.X,
+                StartPosition.Y.Scale,
+                StartPosition.Y.Offset + Delta.Y
+            )
+
+        if not Minimized then
+            FullPosition = Main.Position
+        end
+    end
 end)
