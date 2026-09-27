@@ -11,11 +11,6 @@ local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 
 --==============================================================
--- GOJO ARTWORK
---==============================================================
-local GOJO_IMAGE_ID = "rbxassetid://95791172005063"
-
---==============================================================
 -- CONFIG
 --==============================================================
 
@@ -48,7 +43,7 @@ Gui.ResetOnSpawn = false
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(285, 265)
+Main.Size = UDim2.fromOffset(285,190)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
@@ -56,67 +51,93 @@ Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Parent = Gui
 
-local GojoFrame = Instance.new("Frame")
-GojoFrame.Name = "GojoArtworkFrame"
-GojoFrame.Size = UDim2.new(1, -16, 0, 82)
-GojoFrame.Position = UDim2.fromOffset(8, 8)
-GojoFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
-GojoFrame.BorderSizePixel = 0
-GojoFrame.ZIndex = 1
-GojoFrame.Parent = Main
+--==============================================================
+-- FONDO DE IMAGEN
+-- Solo visual: no modifica ninguna mecánica.
+--==============================================================
 
-local GojoCorner = Instance.new("UICorner")
-GojoCorner.CornerRadius = UDim.new(0, 8)
-GojoCorner.Parent = GojoFrame
+local BackgroundImage = Instance.new("ImageLabel")
+BackgroundImage.Name = "BackgroundImage"
+BackgroundImage.Size = UDim2.fromScale(1, 1)
+BackgroundImage.Position = UDim2.fromScale(0, 0)
+BackgroundImage.BackgroundTransparency = 1
+BackgroundImage.Image = "rbxassetid://95791172005063"
+BackgroundImage.ImageTransparency = 0.15
+BackgroundImage.ScaleType = Enum.ScaleType.Crop
+BackgroundImage.ZIndex = 0
+BackgroundImage.Parent = Main
 
-local GojoImage = Instance.new("ImageLabel")
-GojoImage.Name = "GojoImage"
-GojoImage.Size = UDim2.fromScale(1, 1)
-GojoImage.Position = UDim2.fromScale(0, 0)
-GojoImage.BackgroundTransparency = 1
-GojoImage.Active = false
-GojoImage.BorderSizePixel = 0
-GojoImage.Image = GOJO_IMAGE_ID
-GojoImage.ScaleType = Enum.ScaleType.Crop
-GojoImage.ZIndex = 1
-GojoImage.Parent = GojoFrame
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 1.6
+MainStroke.Color = Color3.fromRGB(0, 255, 170)
+MainStroke.Transparency = 0.15
+MainStroke.Parent = Main
 
-local GojoImageCorner = Instance.new("UICorner")
-GojoImageCorner.CornerRadius = UDim.new(0, 8)
-GojoImageCorner.Parent = GojoImage
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 170)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 120, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 170))
+})
+StrokeGradient.Parent = MainStroke
 
-local GojoOverlay = Instance.new("Frame")
-GojoOverlay.Size = UDim2.fromScale(1, 1)
-GojoOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-GojoOverlay.Active = false
-GojoOverlay.BackgroundTransparency = 0.42
-GojoOverlay.BorderSizePixel = 0
-GojoOverlay.ZIndex = 1
-GojoOverlay.Parent = GojoFrame
+local BorderAnimation = Instance.new("NumberValue")
+BorderAnimation.Value = 0
 
-local GojoText = Instance.new("TextLabel")
-GojoText.Size = UDim2.new(1, -16, 0, 22)
-GojoText.Position = UDim2.fromOffset(8, 54)
-GojoText.BackgroundTransparency = 1
-GojoText.Text = "GOJO • BLACK EDITION"
-GojoText.TextColor3 = Color3.fromRGB(255, 255, 255)
-GojoText.TextSize = 12
-GojoText.Font = Enum.Font.GothamBold
-GojoText.TextXAlignment = Enum.TextXAlignment.Left
-GojoText.ZIndex = 4
-GojoText.Parent = GojoFrame
+task.spawn(function()
+    while Gui.Parent do
+        BorderAnimation.Value = (BorderAnimation.Value + 0.018) % 1
+        StrokeGradient.Rotation = BorderAnimation.Value * 360
+        MainStroke.Transparency = 0.08 + math.sin(os.clock() * 2.4) * 0.06
+        task.wait(0.03)
+    end
+end)
 
-local GojoStroke = Instance.new("UIStroke")
-GojoStroke.Thickness = 1
-GojoStroke.Color = Color3.fromRGB(255, 255, 255)
-GojoStroke.Transparency = 0.55
-GojoStroke.Parent = GojoFrame
+local ParticleLayer = Instance.new("Frame")
+ParticleLayer.Name = "PremiumParticles"
+ParticleLayer.Size = UDim2.fromScale(1, 1)
+ParticleLayer.BackgroundTransparency = 1
+ParticleLayer.ClipsDescendants = true
+ParticleLayer.ZIndex = 1
+ParticleLayer.Parent = Main
 
+task.spawn(function()
+    while Gui.Parent do
+        local Dot = Instance.new("Frame")
+        Dot.Size = UDim2.fromOffset(2, 2)
+        Dot.Position = UDim2.new(math.random(), 0, 1, 0)
+        Dot.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
+        Dot.BackgroundTransparency = 0.15
+        Dot.BorderSizePixel = 0
+        Dot.ZIndex = 0
+        Dot.Parent = ParticleLayer
 
+        local DotCorner = Instance.new("UICorner")
+        DotCorner.CornerRadius = UDim.new(1, 0)
+        DotCorner.Parent = Dot
+
+        task.spawn(function()
+            local startY = Dot.Position.Y.Scale
+            for i = 1, 45 do
+                if not Dot.Parent then return end
+                Dot.Position = UDim2.new(
+                    Dot.Position.X.Scale,
+                    math.sin((i + os.clock()) * 0.08) * 4,
+                    startY - i / 55,
+                    0
+                )
+                Dot.BackgroundTransparency = 0.15 + i / 65
+                task.wait(0.03)
+            end
+            Dot:Destroy()
+        end)
+
+        task.wait(0.35)
+    end
+end)
 
 local Corner = Instance.new("UICorner")
 Corner.CornerRadius = UDim.new(0,9)
-
 Corner.Parent = Main
 
 local Border = Instance.new("UIStroke")
@@ -133,7 +154,6 @@ TopBar.Size = UDim2.new(1,0,0,34)
 TopBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
 TopBar.BackgroundTransparency = .12
 TopBar.BorderSizePixel = 0
-TopBar.ZIndex = 20
 TopBar.Parent = Main
 
 local Title = Instance.new("TextLabel")
@@ -145,7 +165,6 @@ Title.TextColor3 = Color3.new(1,1,1)
 Title.TextSize = 12
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.ZIndex = 21
 Title.Parent = TopBar
 
 local MinButton = Instance.new("TextButton")
@@ -156,7 +175,6 @@ MinButton.Text = "—"
 MinButton.TextColor3 = Color3.new(1,1,1)
 MinButton.TextSize = 17
 MinButton.Font = Enum.Font.GothamBold
-MinButton.ZIndex = 22
 MinButton.Parent = TopBar
 
 local CloseButton = Instance.new("TextButton")
@@ -167,7 +185,6 @@ CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255,65,65)
 CloseButton.TextSize = 12
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.ZIndex = 22
 CloseButton.Parent = TopBar
 
 --==============================================================
@@ -175,25 +192,16 @@ CloseButton.Parent = TopBar
 --==============================================================
 
 local Logo = Instance.new("ImageLabel")
-Logo.Name = "KOXTA_Logo"
-Logo.Size = UDim2.fromOffset(42,42)
-Logo.Position = UDim2.new(1,-50,0,14)
-Logo.BackgroundTransparency = 0.15
-Logo.BackgroundColor3 = Color3.fromRGB(0,0,0)
+Logo.Size = UDim2.fromOffset(36,36)
+Logo.Position = UDim2.new(1,-47,0,42)
+Logo.BackgroundTransparency = 1
 Logo.Image = LOGO_ID
 Logo.ScaleType = Enum.ScaleType.Fit
-Logo.ZIndex = 23
-Logo.Parent = GojoFrame
+Logo.Parent = Main
 
 local LogoCorner = Instance.new("UICorner")
 LogoCorner.CornerRadius = UDim.new(1,0)
 LogoCorner.Parent = Logo
-
-local LogoStroke = Instance.new("UIStroke")
-LogoStroke.Thickness = 1
-LogoStroke.Color = Color3.fromRGB(255,255,255)
-LogoStroke.Transparency = 0.45
-LogoStroke.Parent = Logo
 
 --==============================================================
 -- INFO
@@ -201,7 +209,7 @@ LogoStroke.Parent = Logo
 
 local BestLabel = Instance.new("TextLabel")
 BestLabel.Size = UDim2.new(1,-60,0,23)
-BestLabel.Position = UDim2.fromOffset(11,96)
+BestLabel.Position = UDim2.fromOffset(11,43)
 BestLabel.BackgroundTransparency = 1
 BestLabel.Text = "🏆 Mejor: BUSCANDO..."
 BestLabel.TextColor3 = Color3.new(1,1,1)
@@ -216,7 +224,7 @@ ValueLabel.Parent = Main
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1,-22,0,19)
-StatusLabel.Position = UDim2.fromOffset(11,119)
+StatusLabel.Position = UDim2.fromOffset(11,86)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Estado: LISTO"
 StatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
@@ -235,7 +243,7 @@ end)
 
 local LoopButton = Instance.new("TextButton")
 LoopButton.Size = UDim2.fromOffset(126,34)
-LoopButton.Position = UDim2.fromOffset(11,145)
+LoopButton.Position = UDim2.fromOffset(11,116)
 LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 LoopButton.BorderSizePixel = 0
 LoopButton.Text = "LOOP  •  OFF"
@@ -259,7 +267,7 @@ LoopStroke.Parent = LoopButton
 
 local InstaButton = Instance.new("TextButton")
 InstaButton.Size = UDim2.fromOffset(126,34)
-InstaButton.Position = UDim2.fromOffset(148,145)
+InstaButton.Position = UDim2.fromOffset(148,116)
 InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 InstaButton.BorderSizePixel = 0
 InstaButton.Text = "INSTA TP"
@@ -283,7 +291,7 @@ InstaStroke.Parent = InstaButton
 
 local BurstLabel = Instance.new("TextLabel")
 BurstLabel.Size = UDim2.new(1,-22,0,18)
-BurstLabel.Position = UDim2.fromOffset(11,184)
+BurstLabel.Position = UDim2.fromOffset(11,155)
 BurstLabel.BackgroundTransparency = 1
 BurstLabel.Text = "RÁFAGA: x5  •  HUEVOS: 0"
 BurstLabel.TextColor3 = Color3.fromRGB(150,150,150)
@@ -1025,7 +1033,7 @@ StatusLabel.Text =
 local Minimized = false
 
 local FullSize =
-    UDim2.fromOffset(285,265)
+    UDim2.fromOffset(285,190)
 
 local BarSize =
     UDim2.fromOffset(285,34)
