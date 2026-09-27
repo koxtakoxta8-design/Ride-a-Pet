@@ -11,6 +11,11 @@ local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 
 --==============================================================
+-- GOJO ARTWORK
+--==============================================================
+local GOJO_IMAGE_ID = "rbxassetid://78744401968360"
+
+--==============================================================
 -- CONFIG
 --==============================================================
 
@@ -43,13 +48,69 @@ Gui.ResetOnSpawn = false
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(285,190)
+Main.Size = UDim2.fromOffset(285, 265)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Parent = Gui
+
+local GojoFrame = Instance.new("Frame")
+GojoFrame.Name = "GojoArtworkFrame"
+GojoFrame.Size = UDim2.new(1, -16, 0, 82)
+GojoFrame.Position = UDim2.fromOffset(8, 8)
+GojoFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+GojoFrame.BorderSizePixel = 0
+GojoFrame.ZIndex = 1
+GojoFrame.Parent = Main
+
+local GojoCorner = Instance.new("UICorner")
+GojoCorner.CornerRadius = UDim.new(0, 8)
+GojoCorner.Parent = GojoFrame
+
+local GojoImage = Instance.new("ImageLabel")
+GojoImage.Name = "GojoImage"
+GojoImage.Size = UDim2.fromScale(1, 1)
+GojoImage.Position = UDim2.fromScale(0, 0)
+GojoImage.BackgroundTransparency = 1
+GojoImage.BorderSizePixel = 0
+GojoImage.Image = GOJO_IMAGE_ID
+GojoImage.ScaleType = Enum.ScaleType.Crop
+GojoImage.ZIndex = 2
+GojoImage.Parent = GojoFrame
+
+local GojoImageCorner = Instance.new("UICorner")
+GojoImageCorner.CornerRadius = UDim.new(0, 8)
+GojoImageCorner.Parent = GojoImage
+
+local GojoOverlay = Instance.new("Frame")
+GojoOverlay.Size = UDim2.fromScale(1, 1)
+GojoOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+GojoOverlay.BackgroundTransparency = 0.42
+GojoOverlay.BorderSizePixel = 0
+GojoOverlay.ZIndex = 3
+GojoOverlay.Parent = GojoFrame
+
+local GojoText = Instance.new("TextLabel")
+GojoText.Size = UDim2.new(1, -16, 0, 22)
+GojoText.Position = UDim2.fromOffset(8, 54)
+GojoText.BackgroundTransparency = 1
+GojoText.Text = "GOJO • BLACK EDITION"
+GojoText.TextColor3 = Color3.fromRGB(255, 255, 255)
+GojoText.TextSize = 12
+GojoText.Font = Enum.Font.GothamBold
+GojoText.TextXAlignment = Enum.TextXAlignment.Left
+GojoText.ZIndex = 4
+GojoText.Parent = GojoFrame
+
+local GojoStroke = Instance.new("UIStroke")
+GojoStroke.Thickness = 1
+GojoStroke.Color = Color3.fromRGB(255, 255, 255)
+GojoStroke.Transparency = 0.55
+GojoStroke.Parent = GojoFrame
+
+
 
 local Corner = Instance.new("UICorner")
 Corner.CornerRadius = UDim.new(0,9)
