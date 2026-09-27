@@ -11,11 +11,6 @@ local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 
 --==============================================================
--- GOJO ARTWORK
---==============================================================
-local GOJO_IMAGE_ID = "rbxassetid://95791172005063"
-
---==============================================================
 -- CONFIG
 --==============================================================
 
@@ -48,7 +43,7 @@ Gui.ResetOnSpawn = false
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(285, 265)
+Main.Size = UDim2.fromOffset(245,228)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
@@ -56,84 +51,12 @@ Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Parent = Gui
 
-local GojoFrame = Instance.new("Frame")
-GojoFrame.Name = "GojoArtworkFrame"
-GojoFrame.Size = UDim2.new(1, -16, 0, 82)
-GojoFrame.Position = UDim2.fromOffset(8, 8)
-GojoFrame.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
-GojoFrame.BorderSizePixel = 0
-GojoFrame.ZIndex = 1
-GojoFrame.Parent = Main
-
-local GojoCorner = Instance.new("UICorner")
-GojoCorner.CornerRadius = UDim.new(0, 8)
-GojoCorner.Parent = GojoFrame
-
-local GojoImage = Instance.new("ImageLabel")
-GojoImage.Name = "GojoImage"
-GojoImage.Size = UDim2.fromScale(1, 1)
-GojoImage.Position = UDim2.fromScale(0, 0)
-GojoImage.BackgroundTransparency = 1
-GojoImage.Active = false
-GojoImage.BorderSizePixel = 0
-GojoImage.Image = GOJO_IMAGE_ID
-GojoImage.ScaleType = Enum.ScaleType.Crop
-GojoImage.ZIndex = 1
-GojoImage.Parent = GojoFrame
-
-local GojoImageCorner = Instance.new("UICorner")
-GojoImageCorner.CornerRadius = UDim.new(0, 8)
-GojoImageCorner.Parent = GojoImage
-
-local GojoOverlay = Instance.new("Frame")
-GojoOverlay.Size = UDim2.fromScale(1, 1)
-GojoOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-GojoOverlay.Active = false
-GojoOverlay.BackgroundTransparency = 0.42
-GojoOverlay.BorderSizePixel = 0
-GojoOverlay.ZIndex = 1
-GojoOverlay.Parent = GojoFrame
-
-local GojoText = Instance.new("TextLabel")
-GojoText.Size = UDim2.new(1, -16, 0, 22)
-GojoText.Position = UDim2.fromOffset(8, 54)
-GojoText.BackgroundTransparency = 1
-GojoText.Text = "GOJO • BLACK EDITION"
-GojoText.TextColor3 = Color3.fromRGB(255, 255, 255)
-GojoText.TextSize = 12
-GojoText.Font = Enum.Font.GothamBold
-GojoText.TextXAlignment = Enum.TextXAlignment.Left
-GojoText.ZIndex = 4
-GojoText.Parent = GojoFrame
-
-local GojoStroke = Instance.new("UIStroke")
-GojoStroke.Thickness = 1
-GojoStroke.Color = Color3.fromRGB(255, 255, 255)
-GojoStroke.Transparency = 0.55
-GojoStroke.Parent = GojoFrame
-
-
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0,9)
-
-Corner.Parent = Main
-
-local Border = Instance.new("UIStroke")
-Border.Color = Color3.fromRGB(0,0,0)
-Border.Thickness = 2
-Border.Parent = Main
-
---==============================================================
--- TOP BAR
---==============================================================
-
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1,0,0,34)
 TopBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
 TopBar.BackgroundTransparency = .12
 TopBar.BorderSizePixel = 0
-TopBar.ZIndex = 20
+TopBar.ZIndex = 10
 TopBar.Parent = Main
 
 local Title = Instance.new("TextLabel")
@@ -145,7 +68,7 @@ Title.TextColor3 = Color3.new(1,1,1)
 Title.TextSize = 12
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.ZIndex = 21
+Title.ZIndex = 11
 Title.Parent = TopBar
 
 local MinButton = Instance.new("TextButton")
@@ -154,9 +77,9 @@ MinButton.Position = UDim2.new(1,-67,0,2)
 MinButton.BackgroundTransparency = 1
 MinButton.Text = "—"
 MinButton.TextColor3 = Color3.new(1,1,1)
-MinButton.TextSize = 17
+MinButton.TextSize = 12
 MinButton.Font = Enum.Font.GothamBold
-MinButton.ZIndex = 22
+MinButton.ZIndex = 11
 MinButton.Parent = TopBar
 
 local CloseButton = Instance.new("TextButton")
@@ -167,7 +90,7 @@ CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255,65,65)
 CloseButton.TextSize = 12
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.ZIndex = 22
+CloseButton.ZIndex = 11
 CloseButton.Parent = TopBar
 
 --==============================================================
@@ -182,8 +105,7 @@ Logo.BackgroundTransparency = 0.15
 Logo.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Logo.Image = LOGO_ID
 Logo.ScaleType = Enum.ScaleType.Fit
-Logo.ZIndex = 23
-Logo.Parent = GojoFrame
+Logo.ZIndex = 5
 
 local LogoCorner = Instance.new("UICorner")
 LogoCorner.CornerRadius = UDim.new(1,0)
@@ -1024,8 +946,7 @@ StatusLabel.Text =
 
 local Minimized = false
 
-local FullSize =
-    UDim2.fromOffset(285,265)
+local FullSize = Main.Size
 
 local BarSize =
     UDim2.fromOffset(285,34)
