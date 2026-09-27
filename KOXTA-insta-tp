@@ -14,7 +14,7 @@ local Player = Players.LocalPlayer
 -- IMAGEN PREMIUM
 -- Sube la imagen a Roblox y pega aquí su Asset ID.
 -- Ejemplo: "rbxassetid://123456789"
-local GOJO_IMAGE_ID = "rbxassetid://78744401968360"
+local GOJO_IMAGE_ID = "rbxassetid://95791172005063"
 
 --==============================================================
 -- CONFIG
@@ -56,75 +56,6 @@ Main.BackgroundTransparency = 0.30
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
 Main.Parent = Gui
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Thickness = 1.6
-MainStroke.Color = Color3.fromRGB(0, 255, 170)
-MainStroke.Transparency = 0.15
-MainStroke.Parent = Main
-
-local StrokeGradient = Instance.new("UIGradient")
-StrokeGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 170)),
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 120, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 170))
-})
-StrokeGradient.Parent = MainStroke
-
-local BorderAnimation = Instance.new("NumberValue")
-BorderAnimation.Value = 0
-
-task.spawn(function()
-    while Gui.Parent do
-        BorderAnimation.Value = (BorderAnimation.Value + 0.018) % 1
-        StrokeGradient.Rotation = BorderAnimation.Value * 360
-        MainStroke.Transparency = 0.08 + math.sin(os.clock() * 2.4) * 0.06
-        task.wait(0.03)
-    end
-end)
-
-local ParticleLayer = Instance.new("Frame")
-ParticleLayer.Name = "PremiumParticles"
-ParticleLayer.Size = UDim2.fromScale(1, 1)
-ParticleLayer.BackgroundTransparency = 1
-ParticleLayer.ClipsDescendants = true
-ParticleLayer.ZIndex = 0
-ParticleLayer.Parent = Main
-
-task.spawn(function()
-    while Gui.Parent do
-        local Dot = Instance.new("Frame")
-        Dot.Size = UDim2.fromOffset(2, 2)
-        Dot.Position = UDim2.new(math.random(), 0, 1, 0)
-        Dot.BackgroundColor3 = Color3.fromRGB(0, 255, 170)
-        Dot.BackgroundTransparency = 0.15
-        Dot.BorderSizePixel = 0
-        Dot.ZIndex = 0
-        Dot.Parent = ParticleLayer
-
-        local DotCorner = Instance.new("UICorner")
-        DotCorner.CornerRadius = UDim.new(1, 0)
-        DotCorner.Parent = Dot
-
-        task.spawn(function()
-            local startY = Dot.Position.Y.Scale
-            for i = 1, 45 do
-                if not Dot.Parent then return end
-                Dot.Position = UDim2.new(
-                    Dot.Position.X.Scale,
-                    math.sin((i + os.clock()) * 0.08) * 4,
-                    startY - i / 55,
-                    0
-                )
-                Dot.BackgroundTransparency = 0.15 + i / 65
-                task.wait(0.03)
-            end
-            Dot:Destroy()
-        end)
-
-        task.wait(0.35)
-    end
-end)
 
 local Corner = Instance.new("UICorner")
 Corner.CornerRadius = UDim.new(0,9)
