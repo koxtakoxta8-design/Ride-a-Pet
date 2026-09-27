@@ -40,292 +40,306 @@ local EXCLUSION_RADIUS = 210
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "KOXTA_RIDE_A_PET"
 Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(270,190)
-Main.Position = UDim2.new(.5,-142,.5,-95)
-Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
-Main.BackgroundTransparency = 0.30
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
+--==============================================================
+-- PANEL NUEVO • BLACK PREMIUM
+--==============================================================
 
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.fromOffset(270, 190)
+Main.Position = UDim2.new(0.5, -135, 0.5, -95)
+Main.BackgroundColor3 = Color3.fromRGB(9, 9, 11)
+Main.BorderSizePixel = 0
 Main.Parent = Gui
 
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 1.2
+MainStroke.Color = Color3.fromRGB(65, 65, 70)
+MainStroke.Transparency = 0.15
+MainStroke.Parent = Main
+
+-- Sombra exterior
+local Shadow = Instance.new("Frame")
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 10, 1, 10)
+Shadow.Position = UDim2.fromOffset(-5, 5)
+Shadow.BackgroundColor3 = Color3.fromRGB(0,0,0)
+Shadow.BackgroundTransparency = 0.35
+Shadow.BorderSizePixel = 0
+Shadow.ZIndex = 0
+Shadow.Parent = Main
+
+local ShadowCorner = Instance.new("UICorner")
+ShadowCorner.CornerRadius = UDim.new(0, 14)
+ShadowCorner.Parent = Shadow
+
 --==============================================================
--- PREMIUM VISUAL SYSTEM
+-- BARRA SUPERIOR
 --==============================================================
-
--- Soft aura behind the panel
-local Aura = Instance.new("Frame")
-Aura.Name = "PremiumAura"
-Aura.Size = UDim2.new(1, 18, 1, 18)
-Aura.Position = UDim2.fromOffset(-9, -9)
-Aura.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Aura.BackgroundTransparency = 0.92
-Aura.BorderSizePixel = 0
-Aura.ZIndex = 0
-Aura.Parent = Main
-
-local AuraCorner = Instance.new("UICorner")
-AuraCorner.CornerRadius = UDim.new(0, 18)
-AuraCorner.Parent = Aura
-
-local AuraStroke = Instance.new("UIStroke")
-AuraStroke.Thickness = 3
-AuraStroke.Transparency = 0.55
-AuraStroke.Color = Color3.fromRGB(255, 255, 255)
-AuraStroke.Parent = Aura
-
--- Main premium border
-local PremiumStroke = Instance.new("UIStroke")
-PremiumStroke.Name = "PremiumBorder"
-PremiumStroke.Thickness = 1.5
-PremiumStroke.Transparency = 0.15
-PremiumStroke.Color = Color3.fromRGB(255, 255, 255)
-PremiumStroke.Parent = Main
-
--- Inner highlight
-local InnerStroke = Instance.new("UIStroke")
-InnerStroke.Name = "InnerBorder"
-InnerStroke.Thickness = 1
-InnerStroke.Transparency = 0.72
-InnerStroke.Color = Color3.fromRGB(170, 170, 170)
-InnerStroke.Parent = Main
-
--- Moving shine line
-local Shine = Instance.new("Frame")
-Shine.Name = "BorderShine"
-Shine.Size = UDim2.new(0, 55, 1, 0)
-Shine.Position = UDim2.new(-0.25, 0, 0, 0)
-Shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Shine.BackgroundTransparency = 0.94
-Shine.BorderSizePixel = 0
-Shine.ZIndex = 1
-Shine.Parent = Main
-
-local ShineGradient = Instance.new("UIGradient")
-ShineGradient.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 1),
-    NumberSequenceKeypoint.new(0.5, 0.15),
-    NumberSequenceKeypoint.new(1, 1)
-})
-ShineGradient.Rotation = 15
-ShineGradient.Parent = Shine
-
--- Small decorative corner dots
-for _, pos in ipairs({
-    UDim2.fromOffset(7,7),
-    UDim2.new(1,-11,0,7),
-    UDim2.new(0,7,1,-11),
-    UDim2.new(1,-11,1,-11)
-}) do
-    local Dot = Instance.new("Frame")
-    Dot.Size = UDim2.fromOffset(4,4)
-    Dot.Position = pos
-    Dot.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    Dot.BorderSizePixel = 0
-    Dot.ZIndex = 4
-    Dot.Parent = Main
-    local DotCorner = Instance.new("UICorner")
-    DotCorner.CornerRadius = UDim.new(1,0)
-    DotCorner.Parent = Dot
-end
-
--- Premium animation loop: subtle pulse, no rainbow.
-task.spawn(function()
-    local TweenService = game:GetService("TweenService")
-    while Gui.Parent do
-        local a = TweenService:Create(
-            PremiumStroke,
-            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.48, Thickness = 1}
-        )
-        local b = TweenService:Create(
-            AuraStroke,
-            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.78, Thickness = 2}
-        )
-        a:Play()
-        b:Play()
-        a.Completed:Wait()
-
-        local c = TweenService:Create(
-            PremiumStroke,
-            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.12, Thickness = 1.5}
-        )
-        local d = TweenService:Create(
-            AuraStroke,
-            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
-            {Transparency = 0.55, Thickness = 3}
-        )
-        c:Play()
-        d:Play()
-        c.Completed:Wait()
-    end
-end)
-
--- Shine sweep
-task.spawn(function()
-    local TweenService = game:GetService("TweenService")
-    while Gui.Parent do
-        Shine.Position = UDim2.new(-0.25, 0, 0, 0)
-        local tw = TweenService:Create(
-            Shine,
-            TweenInfo.new(1.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Position = UDim2.new(1.05, 0, 0, 0)}
-        )
-        tw:Play()
-        tw.Completed:Wait()
-        task.wait(1.6)
-    end
-end)
-
 
 local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1,0,0,34)
-TopBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
-TopBar.BackgroundTransparency = .12
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, -12, 0, 34)
+TopBar.Position = UDim2.fromOffset(6, 6)
+TopBar.BackgroundColor3 = Color3.fromRGB(15,15,18)
 TopBar.BorderSizePixel = 0
 TopBar.ZIndex = 10
 TopBar.Parent = Main
 
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 8)
+TopCorner.Parent = TopBar
+
+local Accent = Instance.new("Frame")
+Accent.Size = UDim2.fromOffset(3, 18)
+Accent.Position = UDim2.fromOffset(8, 8)
+Accent.BackgroundColor3 = Color3.fromRGB(255,255,255)
+Accent.BorderSizePixel = 0
+Accent.ZIndex = 11
+Accent.Parent = TopBar
+
+local AccentCorner = Instance.new("UICorner")
+AccentCorner.CornerRadius = UDim.new(1,0)
+AccentCorner.Parent = Accent
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-75,1,0)
-Title.Position = UDim2.fromOffset(9,0)
+Title.Size = UDim2.new(1, -92, 1, 0)
+Title.Position = UDim2.fromOffset(18, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "KOXTA • RIDE A PET"
-Title.TextColor3 = Color3.new(1,1,1)
+Title.Text = "KOXTA  •  RIDE A PET"
+Title.TextColor3 = Color3.fromRGB(245,245,245)
 Title.TextSize = 12
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.ZIndex = 11
 Title.Parent = TopBar
 
+local SubTitle = Instance.new("TextLabel")
+SubTitle.Size = UDim2.fromOffset(90, 34)
+SubTitle.Position = UDim2.new(1,-132,0,0)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "ULTRA"
+SubTitle.TextColor3 = Color3.fromRGB(150,150,155)
+SubTitle.TextSize = 9
+SubTitle.Font = Enum.Font.GothamMedium
+SubTitle.TextXAlignment = Enum.TextXAlignment.Right
+SubTitle.ZIndex = 11
+SubTitle.Parent = TopBar
+
 local MinButton = Instance.new("TextButton")
-MinButton.Size = UDim2.fromOffset(32,30)
-MinButton.Position = UDim2.new(1,-67,0,2)
-MinButton.BackgroundTransparency = 1
+MinButton.Name = "MinButton"
+MinButton.Size = UDim2.fromOffset(25,25)
+MinButton.Position = UDim2.new(1,-60,0,4)
+MinButton.BackgroundColor3 = Color3.fromRGB(27,27,31)
+MinButton.BorderSizePixel = 0
 MinButton.Text = "—"
-MinButton.TextColor3 = Color3.new(1,1,1)
-MinButton.TextSize = 12
+MinButton.TextColor3 = Color3.fromRGB(220,220,220)
+MinButton.TextSize = 14
 MinButton.Font = Enum.Font.GothamBold
-MinButton.ZIndex = 11
+MinButton.AutoButtonColor = false
+MinButton.ZIndex = 12
 MinButton.Parent = TopBar
 
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0,6)
+MinCorner.Parent = MinButton
+
 local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.fromOffset(32,30)
-CloseButton.Position = UDim2.new(1,-34,0,2)
-CloseButton.BackgroundTransparency = 1
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Color3.fromRGB(255,65,65)
-CloseButton.TextSize = 12
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.fromOffset(25,25)
+CloseButton.Position = UDim2.new(1,-31,0,4)
+CloseButton.BackgroundColor3 = Color3.fromRGB(30,22,24)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(255,150,150)
+CloseButton.TextSize = 16
 CloseButton.Font = Enum.Font.GothamBold
-CloseButton.ZIndex = 11
+CloseButton.AutoButtonColor = false
+CloseButton.ZIndex = 12
 CloseButton.Parent = TopBar
 
---==============================================================
--- LOGO
---==============================================================
-
-local Logo = Instance.new("ImageLabel")
-Logo.Name = "KOXTA_Logo"
-Logo.Size = UDim2.fromOffset(42,42)
-Logo.Position = UDim2.new(1,-50,0,14)
-Logo.BackgroundTransparency = 0.15
-Logo.BackgroundColor3 = Color3.fromRGB(0,0,0)
-Logo.Image = LOGO_ID
-Logo.ScaleType = Enum.ScaleType.Fit
-Logo.ZIndex = 5
-
-local LogoCorner = Instance.new("UICorner")
-LogoCorner.CornerRadius = UDim.new(1,0)
-LogoCorner.Parent = Logo
-
-local LogoStroke = Instance.new("UIStroke")
-LogoStroke.Thickness = 1
-LogoStroke.Color = Color3.fromRGB(255,255,255)
-LogoStroke.Transparency = 0.45
-LogoStroke.Parent = Logo
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0,6)
+CloseCorner.Parent = CloseButton
 
 --==============================================================
--- INFO
+-- TARJETA DEL MEJOR HUEVO
 --==============================================================
+
+local BestCard = Instance.new("Frame")
+BestCard.Name = "BestCard"
+BestCard.Size = UDim2.new(1,-20,0,48)
+BestCard.Position = UDim2.fromOffset(10,46)
+BestCard.BackgroundColor3 = Color3.fromRGB(15,15,18)
+BestCard.BorderSizePixel = 0
+BestCard.ZIndex = 3
+BestCard.Parent = Main
+
+local BestCorner = Instance.new("UICorner")
+BestCorner.CornerRadius = UDim.new(0,9)
+BestCorner.Parent = BestCard
+
+local BestStroke = Instance.new("UIStroke")
+BestStroke.Thickness = 1
+BestStroke.Color = Color3.fromRGB(45,45,50)
+BestStroke.Transparency = 0.15
+BestStroke.Parent = BestCard
+
+local Trophy = Instance.new("TextLabel")
+Trophy.Size = UDim2.fromOffset(34,34)
+Trophy.Position = UDim2.fromOffset(7,7)
+Trophy.BackgroundColor3 = Color3.fromRGB(25,25,29)
+Trophy.BorderSizePixel = 0
+Trophy.Text = "★"
+Trophy.TextColor3 = Color3.fromRGB(255,255,255)
+Trophy.TextSize = 15
+Trophy.Font = Enum.Font.GothamBold
+Trophy.ZIndex = 4
+Trophy.Parent = BestCard
+
+local TrophyCorner = Instance.new("UICorner")
+TrophyCorner.CornerRadius = UDim.new(0,8)
+TrophyCorner.Parent = Trophy
 
 local BestLabel = Instance.new("TextLabel")
-BestLabel.Size = UDim2.new(1,-60,0,23)
-BestLabel.Position = UDim2.fromOffset(8,96)
+BestLabel.Size = UDim2.new(1,-52,0,20)
+BestLabel.Position = UDim2.fromOffset(48,5)
 BestLabel.BackgroundTransparency = 1
 BestLabel.Text = "🏆 Mejor: BUSCANDO..."
-BestLabel.TextColor3 = Color3.new(1,1,1)
+BestLabel.TextColor3 = Color3.fromRGB(245,245,245)
 BestLabel.TextSize = 11
 BestLabel.Font = Enum.Font.GothamBold
 BestLabel.TextXAlignment = Enum.TextXAlignment.Left
-BestLabel.Parent = Main
-
-local ValueLabel = Instance.new("TextLabel")
-ValueLabel.Visible = false
-ValueLabel.Parent = Main
+BestLabel.TextTruncate = Enum.TextTruncate.AtEnd
+BestLabel.ZIndex = 4
+BestLabel.Parent = BestCard
 
 local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1,-22,0,19)
-StatusLabel.Position = UDim2.fromOffset(8,119)
+StatusLabel.Size = UDim2.new(1,-52,0,17)
+StatusLabel.Position = UDim2.fromOffset(48,25)
 StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Estado: LISTO"
-StatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
-StatusLabel.TextSize = 10
-StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "Estado: INICIANDO"
+StatusLabel.TextColor3 = Color3.fromRGB(145,145,150)
+StatusLabel.TextSize = 9
+StatusLabel.Font = Enum.Font.GothamMedium
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
-StatusLabel.Parent = Main
-
-Player.CharacterAdded:Connect(function()
-    CachedPlotPosition = nil
-end)
-
+StatusLabel.TextTruncate = Enum.TextTruncate.AtEnd
+StatusLabel.ZIndex = 4
+StatusLabel.Parent = BestCard
 
 --==============================================================
--- BUTTON MICRO-ANIMATIONS
+-- BOTONES PRINCIPALES
 --==============================================================
-local function PremiumButton(Button)
-    if not Button or not Button:IsA("TextButton") then
-        return
-    end
 
+local LoopButton = Instance.new("TextButton")
+LoopButton.Name = "LoopButton"
+LoopButton.Size = UDim2.new(0.5,-14,0,34)
+LoopButton.Position = UDim2.fromOffset(10,101)
+LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,21)
+LoopButton.BorderSizePixel = 0
+LoopButton.Text = "LOOP  •  OFF"
+LoopButton.TextColor3 = Color3.fromRGB(235,235,235)
+LoopButton.TextSize = 10
+LoopButton.Font = Enum.Font.GothamBold
+LoopButton.AutoButtonColor = false
+LoopButton.ZIndex = 3
+LoopButton.Parent = Main
+
+local LoopCorner = Instance.new("UICorner")
+LoopCorner.CornerRadius = UDim.new(0,8)
+LoopCorner.Parent = LoopButton
+
+local InstaButton = Instance.new("TextButton")
+InstaButton.Name = "InstaButton"
+InstaButton.Size = UDim2.new(0.5,-14,0,34)
+InstaButton.Position = UDim2.new(0.5,4,0,101)
+InstaButton.BackgroundColor3 = Color3.fromRGB(235,235,235)
+InstaButton.BorderSizePixel = 0
+InstaButton.Text = "⚡  INSTA TP"
+InstaButton.TextColor3 = Color3.fromRGB(10,10,12)
+InstaButton.TextSize = 10
+InstaButton.Font = Enum.Font.GothamBold
+InstaButton.AutoButtonColor = false
+InstaButton.ZIndex = 3
+InstaButton.Parent = Main
+
+local InstaCorner = Instance.new("UICorner")
+InstaCorner.CornerRadius = UDim.new(0,8)
+InstaCorner.Parent = InstaButton
+
+--==============================================================
+-- ESTADO / RÁFAGA
+--==============================================================
+
+local BurstLabel = Instance.new("TextLabel")
+BurstLabel.Name = "BurstLabel"
+BurstLabel.Size = UDim2.new(1,-20,0,20)
+BurstLabel.Position = UDim2.fromOffset(10,143)
+BurstLabel.BackgroundTransparency = 1
+BurstLabel.Text = "RÁFAGA  x5     •     AUTO GRAB ACTIVO"
+BurstLabel.TextColor3 = Color3.fromRGB(120,120,126)
+BurstLabel.TextSize = 9
+BurstLabel.Font = Enum.Font.GothamMedium
+BurstLabel.TextXAlignment = Enum.TextXAlignment.Left
+BurstLabel.ZIndex = 3
+BurstLabel.Parent = Main
+
+local BottomLine = Instance.new("Frame")
+BottomLine.Size = UDim2.new(1,-20,0,1)
+BottomLine.Position = UDim2.fromOffset(10,166)
+BottomLine.BackgroundColor3 = Color3.fromRGB(45,45,50)
+BottomLine.BorderSizePixel = 0
+BottomLine.ZIndex = 3
+BottomLine.Parent = Main
+
+local Footer = Instance.new("TextLabel")
+Footer.Size = UDim2.new(1,-20,0,14)
+Footer.Position = UDim2.fromOffset(10,170)
+Footer.BackgroundTransparency = 1
+Footer.Text = "KOXTA SYSTEM  •  READY"
+Footer.TextColor3 = Color3.fromRGB(85,85,90)
+Footer.TextSize = 8
+Footer.Font = Enum.Font.GothamMedium
+Footer.TextXAlignment = Enum.TextXAlignment.Center
+Footer.ZIndex = 3
+Footer.Parent = Main
+
+--==============================================================
+-- ANIMACIONES SUTILES
+--==============================================================
+
+local function ButtonFX(Button)
     local Stroke = Instance.new("UIStroke")
     Stroke.Thickness = 1
-    Stroke.Transparency = 0.45
     Stroke.Color = Color3.fromRGB(255,255,255)
+    Stroke.Transparency = 0.82
     Stroke.Parent = Button
 
-    local Corner = Button:FindFirstChildOfClass("UICorner")
-    if not Corner then
-        Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0,7)
-        Corner.Parent = Button
-    end
-
     Button.MouseEnter:Connect(function()
-        TweenService:Create(
-            Stroke,
-            TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Transparency = 0.05, Thickness = 1.5}
-        ):Play()
+        TweenService:Create(Stroke,TweenInfo.new(.15),{
+            Transparency = .35
+        }):Play()
     end)
 
     Button.MouseLeave:Connect(function()
-        TweenService:Create(
-            Stroke,
-            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            {Transparency = 0.45, Thickness = 1}
-        ):Play()
+        TweenService:Create(Stroke,TweenInfo.new(.2),{
+            Transparency = .82
+        }):Play()
     end)
 end
 
-PremiumButton(LoopButton)
-PremiumButton(InstaButton)
-PremiumButton(MinButton)
-PremiumButton(CloseButton)
+ButtonFX(LoopButton)
+ButtonFX(InstaButton)
+ButtonFX(MinButton)
+ButtonFX(CloseButton)
+
 
 --==============================================================
 -- LOOP
