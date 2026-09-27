@@ -43,13 +43,145 @@ Gui.ResetOnSpawn = false
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(250,175)
+Main.Size = UDim2.fromOffset(270,190)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
 Main.BorderSizePixel = 0
 Main.ClipsDescendants = true
+
 Main.Parent = Gui
+
+--==============================================================
+-- PREMIUM VISUAL SYSTEM
+--==============================================================
+
+-- Soft aura behind the panel
+local Aura = Instance.new("Frame")
+Aura.Name = "PremiumAura"
+Aura.Size = UDim2.new(1, 18, 1, 18)
+Aura.Position = UDim2.fromOffset(-9, -9)
+Aura.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Aura.BackgroundTransparency = 0.92
+Aura.BorderSizePixel = 0
+Aura.ZIndex = 0
+Aura.Parent = Main
+
+local AuraCorner = Instance.new("UICorner")
+AuraCorner.CornerRadius = UDim.new(0, 18)
+AuraCorner.Parent = Aura
+
+local AuraStroke = Instance.new("UIStroke")
+AuraStroke.Thickness = 3
+AuraStroke.Transparency = 0.55
+AuraStroke.Color = Color3.fromRGB(255, 255, 255)
+AuraStroke.Parent = Aura
+
+-- Main premium border
+local PremiumStroke = Instance.new("UIStroke")
+PremiumStroke.Name = "PremiumBorder"
+PremiumStroke.Thickness = 1.5
+PremiumStroke.Transparency = 0.15
+PremiumStroke.Color = Color3.fromRGB(255, 255, 255)
+PremiumStroke.Parent = Main
+
+-- Inner highlight
+local InnerStroke = Instance.new("UIStroke")
+InnerStroke.Name = "InnerBorder"
+InnerStroke.Thickness = 1
+InnerStroke.Transparency = 0.72
+InnerStroke.Color = Color3.fromRGB(170, 170, 170)
+InnerStroke.Parent = Main
+
+-- Moving shine line
+local Shine = Instance.new("Frame")
+Shine.Name = "BorderShine"
+Shine.Size = UDim2.new(0, 55, 1, 0)
+Shine.Position = UDim2.new(-0.25, 0, 0, 0)
+Shine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Shine.BackgroundTransparency = 0.94
+Shine.BorderSizePixel = 0
+Shine.ZIndex = 1
+Shine.Parent = Main
+
+local ShineGradient = Instance.new("UIGradient")
+ShineGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 1),
+    NumberSequenceKeypoint.new(0.5, 0.15),
+    NumberSequenceKeypoint.new(1, 1)
+})
+ShineGradient.Rotation = 15
+ShineGradient.Parent = Shine
+
+-- Small decorative corner dots
+for _, pos in ipairs({
+    UDim2.fromOffset(7,7),
+    UDim2.new(1,-11,0,7),
+    UDim2.new(0,7,1,-11),
+    UDim2.new(1,-11,1,-11)
+}) do
+    local Dot = Instance.new("Frame")
+    Dot.Size = UDim2.fromOffset(4,4)
+    Dot.Position = pos
+    Dot.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    Dot.BorderSizePixel = 0
+    Dot.ZIndex = 4
+    Dot.Parent = Main
+    local DotCorner = Instance.new("UICorner")
+    DotCorner.CornerRadius = UDim.new(1,0)
+    DotCorner.Parent = Dot
+end
+
+-- Premium animation loop: subtle pulse, no rainbow.
+task.spawn(function()
+    local TweenService = game:GetService("TweenService")
+    while Gui.Parent do
+        local a = TweenService:Create(
+            PremiumStroke,
+            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {Transparency = 0.48, Thickness = 1}
+        )
+        local b = TweenService:Create(
+            AuraStroke,
+            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {Transparency = 0.78, Thickness = 2}
+        )
+        a:Play()
+        b:Play()
+        a.Completed:Wait()
+
+        local c = TweenService:Create(
+            PremiumStroke,
+            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {Transparency = 0.12, Thickness = 1.5}
+        )
+        local d = TweenService:Create(
+            AuraStroke,
+            TweenInfo.new(1.25, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {Transparency = 0.55, Thickness = 3}
+        )
+        c:Play()
+        d:Play()
+        c.Completed:Wait()
+    end
+end)
+
+-- Shine sweep
+task.spawn(function()
+    local TweenService = game:GetService("TweenService")
+    while Gui.Parent do
+        Shine.Position = UDim2.new(-0.25, 0, 0, 0)
+        local tw = TweenService:Create(
+            Shine,
+            TweenInfo.new(1.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Position = UDim2.new(1.05, 0, 0, 0)}
+        )
+        tw:Play()
+        tw.Completed:Wait()
+        task.wait(1.6)
+    end
+end)
+
 
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1,0,0,34)
@@ -151,6 +283,50 @@ Player.CharacterAdded:Connect(function()
     CachedPlotPosition = nil
 end)
 
+
+--==============================================================
+-- BUTTON MICRO-ANIMATIONS
+--==============================================================
+local function PremiumButton(Button)
+    if not Button or not Button:IsA("TextButton") then
+        return
+    end
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Thickness = 1
+    Stroke.Transparency = 0.45
+    Stroke.Color = Color3.fromRGB(255,255,255)
+    Stroke.Parent = Button
+
+    local Corner = Button:FindFirstChildOfClass("UICorner")
+    if not Corner then
+        Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0,7)
+        Corner.Parent = Button
+    end
+
+    Button.MouseEnter:Connect(function()
+        TweenService:Create(
+            Stroke,
+            TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Transparency = 0.05, Thickness = 1.5}
+        ):Play()
+    end)
+
+    Button.MouseLeave:Connect(function()
+        TweenService:Create(
+            Stroke,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            {Transparency = 0.45, Thickness = 1}
+        ):Play()
+    end)
+end
+
+PremiumButton(LoopButton)
+PremiumButton(InstaButton)
+PremiumButton(MinButton)
+PremiumButton(CloseButton)
+
 --==============================================================
 -- LOOP
 --==============================================================
@@ -160,6 +336,7 @@ LoopButton.Size = UDim2.fromOffset(126,34)
 LoopButton.Position = UDim2.fromOffset(8,145)
 LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 LoopButton.BorderSizePixel = 0
+LoopButton.AutoButtonColor = true
 LoopButton.Text = "LOOP  •  OFF"
 LoopButton.TextColor3 = Color3.new(1,1,1)
 LoopButton.TextSize = 11
@@ -184,6 +361,7 @@ InstaButton.Size = UDim2.fromOffset(126,34)
 InstaButton.Position = UDim2.fromOffset(130,145)
 InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 InstaButton.BorderSizePixel = 0
+InstaButton.AutoButtonColor = true
 InstaButton.Text = "INSTA TP"
 InstaButton.TextColor3 = Color3.new(1,1,1)
 InstaButton.TextSize = 11
@@ -946,7 +1124,7 @@ StatusLabel.Text =
 
 local Minimized = false
 
-local FullSize = UDim2.fromOffset(250,175)
+local FullSize = UDim2.fromOffset(270,190)
 
 local BarSize =
     UDim2.fromOffset(250,28)
