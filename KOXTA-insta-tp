@@ -1136,58 +1136,52 @@ StatusLabel.Text =
 -- MINIMIZAR / RESTAURAR
 --==============================================================
 
-local Minimized = false
-
 local FullSize = UDim2.fromOffset(270,190)
-
-local BarSize =
-    UDim2.fromOffset(250,28)
-
-local FullPosition =
-    Main.Position
+local MinimizedSize = UDim2.fromOffset(270,46)
+local IsMinimized = false
 
 MinButton.MouseButton1Click:Connect(function()
+    IsMinimized = not IsMinimized
 
-    if not Minimized then
+    if IsMinimized then
+        MinButton.Text = "+"
+        Main.Size = MinimizedSize
 
-        Minimized = true
+        for _, child in ipairs(Main:GetChildren()) do
+            if child ~= TopBar
+            and child ~= MainCorner
+            and child ~= MainStroke
+            and child ~= Shadow
+            and child ~= TopBar then
+                if child:IsA("GuiObject") then
+                    child.Visible = false
+                end
+            end
+        end
 
-        TweenService:Create(
-            Main,
-            TweenInfo.new(
-                .35,
-                Enum.EasingStyle.Quart,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = BarSize,
-
-                Position =
-                    UDim2.new(
-                        FullPosition.X.Scale,
-                        FullPosition.X.Offset,
-                        0,
-                        10
-                    )
-            }
-        ):Play()
-
+        TopBar.Visible = true
+        MinButton.Visible = true
+        CloseButton.Visible = true
+        Title.Visible = true
+        SubTitle.Visible = true
+        Accent.Visible = true
     else
+        MinButton.Text = "—"
+        Main.Size = FullSize
 
-        Minimized = false
+        for _, child in ipairs(Main:GetChildren()) do
+            if child:IsA("GuiObject") then
+                child.Visible = true
+            end
+        end
 
-        TweenService:Create(
-            Main,
-            TweenInfo.new(
-                .35,
-                Enum.EasingStyle.Quart,
-                Enum.EasingDirection.Out
-            ),
-            {
-                Size = FullSize,
-                Position = FullPosition
-            }
-        ):Play()
+        Shadow.Visible = true
+        TopBar.Visible = true
+        MinButton.Visible = true
+        CloseButton.Visible = true
+        Title.Visible = true
+        SubTitle.Visible = true
+        Accent.Visible = true
     end
 end)
 
