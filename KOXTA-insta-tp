@@ -18,7 +18,7 @@ local LOOP = false
 local BUSY = false
 
 local BURST_COUNT = 5
-local LOOP_DELAY = 1.0
+local LOOP_DELAY = 1.15
 local PROMPT_DELAY = 0.035
 local EGG_OFFSET = Vector3.new(0, 2, 0)
 
@@ -622,45 +622,74 @@ local function ActivatePrompt(Prompt)
     return ok
 end
 
+local function WaitUntilCollected(EggObject, Timeout)
+    local Deadline = os.clock() + (Timeout or 0.9)
+
+    while EggObject
+    and EggObject.Parent
+    and os.clock() < Deadline do
+        task.wait(0.05)
+    end
+
+    return not EggObject or not EggObject.Parent
+end
+
 local function BurstCollect(Egg)
     if not Egg or not Egg.Object or not Egg.Object.Parent then
         return false
     end
 
-    local Prompt = WaitForPrompt(Egg.Object, 0.8)
-    if not Prompt then
-        return false
-    end
-
-    Egg.Prompt = Prompt
     local Activated = false
 
+    -- No hacemos 5 disparos seguidos. Primero intentamos recoger una vez.
+    -- Si el juego no procesó la recogida, reintentamos después de esperar.
     for i = 1, BURST_COUNT do
-        if not Egg.Object.Parent then break end
-
-        if not Prompt.Parent then
-            Prompt = WaitForPrompt(Egg.Object, 0.35)
-            Egg.Prompt = Prompt
+        if not Egg.Object or not Egg.Object.Parent then
+            return true
         end
-        if not Prompt then break end
 
+        local Prompt = FindPrompt(Egg.Object)
+
+        if not Prompt or not Prompt.Parent then
+            Prompt = WaitForPrompt(Egg.Object, 0.60)
+        end
+
+        if not Prompt then
+            task.wait(0.08)
+            continue
+        end
+
+        Egg.Prompt = Prompt
         StatusLabel.Text = "Estado: AUTO GRAB " .. i .. "/" .. BURST_COUNT
 
-        local deadline = os.clock() + 0.35
-        while Prompt.Parent and not Prompt.Enabled and os.clock() < deadline do
+        -- Esperar hasta que el prompt esté realmente habilitado.
+        local ReadyDeadline = os.clock() + 0.50
+
+        while Prompt.Parent
+        and not Prompt.Enabled
+        and os.clock() < ReadyDeadline do
             task.wait(0.03)
         end
 
-        if not Prompt.Parent then break end
+        if not Prompt.Parent then
+            continue
+        end
 
         if ActivatePrompt(Prompt) then
             Activated = true
         end
 
-        task.wait(PROMPT_DELAY)
+        -- Importante: no volver a disparar inmediatamente.
+        -- Dejamos que el juego procese la recogida.
+        if WaitUntilCollected(Egg.Object, 0.45) then
+            return true
+        end
+
+        -- Sigue existiendo: refrescar prompt y probar nuevamente.
+        task.wait(0.08)
     end
 
-    return Activated
+    return Activated and (not Egg.Object or not Egg.Object.Parent)
 end
 
 --==============================================================
