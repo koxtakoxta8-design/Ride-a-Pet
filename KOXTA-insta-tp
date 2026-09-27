@@ -43,7 +43,7 @@ Gui.ResetOnSpawn = false
 Gui.Parent = Player:WaitForChild("PlayerGui")
 
 local Main = Instance.new("Frame")
-Main.Size = UDim2.fromOffset(245,228)
+Main.Size = UDim2.fromOffset(250,175)
 Main.Position = UDim2.new(.5,-142,.5,-95)
 Main.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Main.BackgroundTransparency = 0.30
@@ -123,7 +123,7 @@ LogoStroke.Parent = Logo
 
 local BestLabel = Instance.new("TextLabel")
 BestLabel.Size = UDim2.new(1,-60,0,23)
-BestLabel.Position = UDim2.fromOffset(11,96)
+BestLabel.Position = UDim2.fromOffset(8,96)
 BestLabel.BackgroundTransparency = 1
 BestLabel.Text = "🏆 Mejor: BUSCANDO..."
 BestLabel.TextColor3 = Color3.new(1,1,1)
@@ -138,7 +138,7 @@ ValueLabel.Parent = Main
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1,-22,0,19)
-StatusLabel.Position = UDim2.fromOffset(11,119)
+StatusLabel.Position = UDim2.fromOffset(8,119)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Estado: LISTO"
 StatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
@@ -157,7 +157,7 @@ end)
 
 local LoopButton = Instance.new("TextButton")
 LoopButton.Size = UDim2.fromOffset(126,34)
-LoopButton.Position = UDim2.fromOffset(11,145)
+LoopButton.Position = UDim2.fromOffset(8,145)
 LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 LoopButton.BorderSizePixel = 0
 LoopButton.Text = "LOOP  •  OFF"
@@ -181,7 +181,7 @@ LoopStroke.Parent = LoopButton
 
 local InstaButton = Instance.new("TextButton")
 InstaButton.Size = UDim2.fromOffset(126,34)
-InstaButton.Position = UDim2.fromOffset(148,145)
+InstaButton.Position = UDim2.fromOffset(130,145)
 InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 InstaButton.BorderSizePixel = 0
 InstaButton.Text = "INSTA TP"
@@ -205,7 +205,7 @@ InstaStroke.Parent = InstaButton
 
 local BurstLabel = Instance.new("TextLabel")
 BurstLabel.Size = UDim2.new(1,-22,0,18)
-BurstLabel.Position = UDim2.fromOffset(11,184)
+BurstLabel.Position = UDim2.fromOffset(8,184)
 BurstLabel.BackgroundTransparency = 1
 BurstLabel.Text = "RÁFAGA: x5  •  HUEVOS: 0"
 BurstLabel.TextColor3 = Color3.fromRGB(150,150,150)
@@ -946,10 +946,10 @@ StatusLabel.Text =
 
 local Minimized = false
 
-local FullSize = Main.Size
+local FullSize = UDim2.fromOffset(250,175)
 
 local BarSize =
-    UDim2.fromOffset(285,34)
+    UDim2.fromOffset(250,28)
 
 local FullPosition =
     Main.Position
