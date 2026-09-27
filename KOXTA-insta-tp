@@ -18,8 +18,8 @@ local LOOP = false
 local BUSY = false
 
 local BURST_COUNT = 5
-local LOOP_DELAY = 1.15
-local PROMPT_DELAY = 0.035
+local LOOP_DELAY = 0.80
+local PROMPT_DELAY = 0.02
 local EGG_OFFSET = Vector3.new(0, 2, 0)
 
 local LOGO_ID = "rbxassetid://103645600156879"
@@ -651,7 +651,7 @@ local function BurstCollect(Egg)
         local Prompt = FindPrompt(Egg.Object)
 
         if not Prompt or not Prompt.Parent then
-            Prompt = WaitForPrompt(Egg.Object, 0.40)
+            Prompt = WaitForPrompt(Egg.Object, 0.25)
         end
 
         if not Prompt then
@@ -663,7 +663,7 @@ local function BurstCollect(Egg)
         StatusLabel.Text = "Estado: AUTO GRAB " .. i .. "/" .. BURST_COUNT
 
         -- Esperar hasta que el prompt esté realmente habilitado.
-        local ReadyDeadline = os.clock() + 0.30
+        local ReadyDeadline = os.clock() + 0.18
 
         while Prompt.Parent
         and not Prompt.Enabled
@@ -821,7 +821,7 @@ local function RunOnce()
         return false
     end
 
-    task.wait(0.06)
+    task.wait(0.025)
 
     local Collected = BurstCollect(Egg)
 
@@ -833,13 +833,13 @@ local function RunOnce()
         EggCache[Egg.Object] = nil
     end
 
-    task.wait(0.04)
+    task.wait(0.015)
 
     local Plot = FindMyPlot()
     if Plot then
         StatusLabel.Text = "Estado: TP AL PLOT"
         Teleport(Plot)
-        task.wait(0.08)
+        task.wait(0.03)
         StatusLabel.Text = Collected
             and "Estado: COMPLETADO"
             or "Estado: AUTO GRAB NO CONFIRMADO"
