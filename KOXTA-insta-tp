@@ -131,6 +131,7 @@ TopBar.Size = UDim2.new(1,0,0,34)
 TopBar.BackgroundColor3 = Color3.fromRGB(0,0,0)
 TopBar.BackgroundTransparency = .12
 TopBar.BorderSizePixel = 0
+TopBar.ZIndex = 10
 TopBar.Parent = Main
 
 local Title = Instance.new("TextLabel")
@@ -142,6 +143,7 @@ Title.TextColor3 = Color3.new(1,1,1)
 Title.TextSize = 12
 Title.Font = Enum.Font.GothamBold
 Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 11
 Title.Parent = TopBar
 
 local MinButton = Instance.new("TextButton")
@@ -152,6 +154,7 @@ MinButton.Text = "—"
 MinButton.TextColor3 = Color3.new(1,1,1)
 MinButton.TextSize = 17
 MinButton.Font = Enum.Font.GothamBold
+MinButton.ZIndex = 11
 MinButton.Parent = TopBar
 
 local CloseButton = Instance.new("TextButton")
@@ -162,6 +165,7 @@ CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255,65,65)
 CloseButton.TextSize = 12
 CloseButton.Font = Enum.Font.GothamBold
+CloseButton.ZIndex = 11
 CloseButton.Parent = TopBar
 
 --==============================================================
@@ -169,16 +173,25 @@ CloseButton.Parent = TopBar
 --==============================================================
 
 local Logo = Instance.new("ImageLabel")
-Logo.Size = UDim2.fromOffset(36,36)
-Logo.Position = UDim2.new(1,-47,0,42)
-Logo.BackgroundTransparency = 1
+Logo.Name = "KOXTA_Logo"
+Logo.Size = UDim2.fromOffset(42,42)
+Logo.Position = UDim2.new(1,-50,0,14)
+Logo.BackgroundTransparency = 0.15
+Logo.BackgroundColor3 = Color3.fromRGB(0,0,0)
 Logo.Image = LOGO_ID
 Logo.ScaleType = Enum.ScaleType.Fit
-Logo.Parent = Main
+Logo.ZIndex = 5
+Logo.Parent = GojoFrame
 
 local LogoCorner = Instance.new("UICorner")
 LogoCorner.CornerRadius = UDim.new(1,0)
 LogoCorner.Parent = Logo
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Thickness = 1
+LogoStroke.Color = Color3.fromRGB(255,255,255)
+LogoStroke.Transparency = 0.45
+LogoStroke.Parent = Logo
 
 --==============================================================
 -- INFO
@@ -186,7 +199,7 @@ LogoCorner.Parent = Logo
 
 local BestLabel = Instance.new("TextLabel")
 BestLabel.Size = UDim2.new(1,-60,0,23)
-BestLabel.Position = UDim2.fromOffset(11,43)
+BestLabel.Position = UDim2.fromOffset(11,96)
 BestLabel.BackgroundTransparency = 1
 BestLabel.Text = "🏆 Mejor: BUSCANDO..."
 BestLabel.TextColor3 = Color3.new(1,1,1)
@@ -201,7 +214,7 @@ ValueLabel.Parent = Main
 
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Size = UDim2.new(1,-22,0,19)
-StatusLabel.Position = UDim2.fromOffset(11,86)
+StatusLabel.Position = UDim2.fromOffset(11,119)
 StatusLabel.BackgroundTransparency = 1
 StatusLabel.Text = "Estado: LISTO"
 StatusLabel.TextColor3 = Color3.fromRGB(180,180,180)
@@ -220,7 +233,7 @@ end)
 
 local LoopButton = Instance.new("TextButton")
 LoopButton.Size = UDim2.fromOffset(126,34)
-LoopButton.Position = UDim2.fromOffset(11,116)
+LoopButton.Position = UDim2.fromOffset(11,145)
 LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 LoopButton.BorderSizePixel = 0
 LoopButton.Text = "LOOP  •  OFF"
@@ -244,7 +257,7 @@ LoopStroke.Parent = LoopButton
 
 local InstaButton = Instance.new("TextButton")
 InstaButton.Size = UDim2.fromOffset(126,34)
-InstaButton.Position = UDim2.fromOffset(148,116)
+InstaButton.Position = UDim2.fromOffset(148,145)
 InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
 InstaButton.BorderSizePixel = 0
 InstaButton.Text = "INSTA TP"
@@ -268,7 +281,7 @@ InstaStroke.Parent = InstaButton
 
 local BurstLabel = Instance.new("TextLabel")
 BurstLabel.Size = UDim2.new(1,-22,0,18)
-BurstLabel.Position = UDim2.fromOffset(11,155)
+BurstLabel.Position = UDim2.fromOffset(11,184)
 BurstLabel.BackgroundTransparency = 1
 BurstLabel.Text = "RÁFAGA: x5  •  HUEVOS: 0"
 BurstLabel.TextColor3 = Color3.fromRGB(150,150,150)
@@ -1010,7 +1023,7 @@ StatusLabel.Text =
 local Minimized = false
 
 local FullSize =
-    UDim2.fromOffset(285,190)
+    UDim2.fromOffset(285,265)
 
 local BarSize =
     UDim2.fromOffset(285,34)
