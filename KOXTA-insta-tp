@@ -170,6 +170,32 @@ CloseCorner.CornerRadius = UDim.new(0,6)
 CloseCorner.Parent = CloseButton
 
 --==============================================================
+-- KOXTA LOGO
+--==============================================================
+local LOGO_ID = "rbxthumb://type=Asset&id=103645600156879&w=420&h=420"
+
+local Logo = Instance.new("ImageLabel")
+Logo.Name = "KOXTA_Logo"
+Logo.Size = UDim2.fromOffset(24,24)
+Logo.Position = UDim2.fromOffset(7,5)
+Logo.BackgroundColor3 = Color3.fromRGB(22,22,25)
+Logo.BorderSizePixel = 0
+Logo.Image = LOGO_ID
+Logo.ScaleType = Enum.ScaleType.Fit
+Logo.ZIndex = 12
+Logo.Parent = TopBar
+
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(1,0)
+LogoCorner.Parent = Logo
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Thickness = 1
+LogoStroke.Color = Color3.fromRGB(90,90,95)
+LogoStroke.Transparency = 0.2
+LogoStroke.Parent = Logo
+
+--==============================================================
 -- TARJETA DEL MEJOR HUEVO
 --==============================================================
 
