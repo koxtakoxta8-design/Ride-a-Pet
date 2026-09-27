@@ -342,71 +342,6 @@ ButtonFX(CloseButton)
 
 
 --==============================================================
--- LOOP
---==============================================================
-
-local LoopButton = Instance.new("TextButton")
-LoopButton.Size = UDim2.fromOffset(126,34)
-LoopButton.Position = UDim2.fromOffset(8,145)
-LoopButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
-LoopButton.BorderSizePixel = 0
-LoopButton.AutoButtonColor = true
-LoopButton.Text = "LOOP  •  OFF"
-LoopButton.TextColor3 = Color3.new(1,1,1)
-LoopButton.TextSize = 11
-LoopButton.Font = Enum.Font.GothamBold
-LoopButton.Parent = Main
-
-local LoopCorner = Instance.new("UICorner")
-LoopCorner.CornerRadius = UDim.new(0,7)
-LoopCorner.Parent = LoopButton
-
-local LoopStroke = Instance.new("UIStroke")
-LoopStroke.Color = Color3.fromRGB(0,0,0)
-LoopStroke.Thickness = 1.5
-LoopStroke.Parent = LoopButton
-
---==============================================================
--- INSTA TP
---==============================================================
-
-local InstaButton = Instance.new("TextButton")
-InstaButton.Size = UDim2.fromOffset(126,34)
-InstaButton.Position = UDim2.fromOffset(130,145)
-InstaButton.BackgroundColor3 = Color3.fromRGB(18,18,18)
-InstaButton.BorderSizePixel = 0
-InstaButton.AutoButtonColor = true
-InstaButton.Text = "INSTA TP"
-InstaButton.TextColor3 = Color3.new(1,1,1)
-InstaButton.TextSize = 11
-InstaButton.Font = Enum.Font.GothamBold
-InstaButton.Parent = Main
-
-local InstaCorner = Instance.new("UICorner")
-InstaCorner.CornerRadius = UDim.new(0,7)
-InstaCorner.Parent = InstaButton
-
-local InstaStroke = Instance.new("UIStroke")
-InstaStroke.Color = Color3.fromRGB(0,0,0)
-InstaStroke.Thickness = 1.5
-InstaStroke.Parent = InstaButton
-
---==============================================================
--- BURST INDICATOR
---==============================================================
-
-local BurstLabel = Instance.new("TextLabel")
-BurstLabel.Size = UDim2.new(1,-22,0,18)
-BurstLabel.Position = UDim2.fromOffset(8,184)
-BurstLabel.BackgroundTransparency = 1
-BurstLabel.Text = "RÁFAGA: x5  •  HUEVOS: 0"
-BurstLabel.TextColor3 = Color3.fromRGB(150,150,150)
-BurstLabel.TextSize = 9
-BurstLabel.Font = Enum.Font.Gotham
-BurstLabel.TextXAlignment = Enum.TextXAlignment.Left
-BurstLabel.Parent = Main
-
---==============================================================
 -- UTILIDADES
 --==============================================================
 
@@ -1140,6 +1075,15 @@ local FullSize = UDim2.fromOffset(270,190)
 local MinimizedSize = UDim2.fromOffset(270,46)
 local IsMinimized = false
 
+local ContentObjects = {
+    BestCard,
+    LoopButton,
+    InstaButton,
+    BurstLabel,
+    BottomLine,
+    Footer
+}
+
 MinButton.MouseButton1Click:Connect(function()
     IsMinimized = not IsMinimized
 
@@ -1147,41 +1091,24 @@ MinButton.MouseButton1Click:Connect(function()
         MinButton.Text = "+"
         Main.Size = MinimizedSize
 
-        for _, child in ipairs(Main:GetChildren()) do
-            if child ~= TopBar
-            and child ~= MainCorner
-            and child ~= MainStroke
-            and child ~= Shadow
-            and child ~= TopBar then
-                if child:IsA("GuiObject") then
-                    child.Visible = false
-                end
+        for _, Object in ipairs(ContentObjects) do
+            if Object then
+                Object.Visible = false
             end
         end
 
         TopBar.Visible = true
-        MinButton.Visible = true
-        CloseButton.Visible = true
-        Title.Visible = true
-        SubTitle.Visible = true
-        Accent.Visible = true
     else
         MinButton.Text = "—"
         Main.Size = FullSize
 
-        for _, child in ipairs(Main:GetChildren()) do
-            if child:IsA("GuiObject") then
-                child.Visible = true
+        for _, Object in ipairs(ContentObjects) do
+            if Object then
+                Object.Visible = true
             end
         end
 
-        Shadow.Visible = true
         TopBar.Visible = true
-        MinButton.Visible = true
-        CloseButton.Visible = true
-        Title.Visible = true
-        SubTitle.Visible = true
-        Accent.Visible = true
     end
 end)
 
@@ -1251,7 +1178,7 @@ UIS.InputChanged:Connect(function(Input)
                 StartPosition.Y.Offset + Delta.Y
             )
 
-        if not Minimized then
+        if not IsMinimized then
             FullPosition = Main.Position
         end
     end
