@@ -11,6 +11,12 @@ local UIS = game:GetService("UserInputService")
 local Player = Players.LocalPlayer
 
 --==============================================================
+-- IMAGEN PREMIUM
+-- Sube la imagen a Roblox y pega aquí su Asset ID.
+-- Ejemplo: "rbxassetid://123456789"
+local GOJO_IMAGE_ID = "rbxassetid://78744401968360"
+
+--==============================================================
 -- CONFIG
 --==============================================================
 
@@ -122,7 +128,77 @@ end)
 
 local Corner = Instance.new("UICorner")
 Corner.CornerRadius = UDim.new(0,9)
+
 Corner.Parent = Main
+
+--==============================================================
+-- ARTWORK PREMIUM: GOJO BLACK & WHITE
+--==============================================================
+
+local Artwork = Instance.new("ImageLabel")
+Artwork.Name = "GojoArtwork"
+Artwork.Size = UDim2.new(1, -16, 0, 105)
+Artwork.Position = UDim2.fromOffset(8, 8)
+Artwork.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Artwork.BackgroundTransparency = 0
+Artwork.BorderSizePixel = 0
+Artwork.Image = GOJO_IMAGE_ID
+Artwork.ScaleType = Enum.ScaleType.Crop
+Artwork.ImageTransparency = 0.04
+Artwork.ZIndex = 1
+Artwork.Parent = Main
+
+local ArtworkCorner = Instance.new("UICorner")
+ArtworkCorner.CornerRadius = UDim.new(0, 8)
+ArtworkCorner.Parent = Artwork
+
+local ArtworkStroke = Instance.new("UIStroke")
+ArtworkStroke.Thickness = 1
+ArtworkStroke.Color = Color3.fromRGB(255, 255, 255)
+ArtworkStroke.Transparency = 0.45
+ArtworkStroke.Parent = Artwork
+
+-- Overlay negro para integrar la imagen con el panel.
+local ArtworkOverlay = Instance.new("Frame")
+ArtworkOverlay.Name = "DarkOverlay"
+ArtworkOverlay.Size = UDim2.fromScale(1, 1)
+ArtworkOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+ArtworkOverlay.BackgroundTransparency = 0.48
+ArtworkOverlay.BorderSizePixel = 0
+ArtworkOverlay.ZIndex = 2
+ArtworkOverlay.Parent = Artwork
+
+local OverlayGradient = Instance.new("UIGradient")
+OverlayGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.18),
+    NumberSequenceKeypoint.new(0.55, 0.42),
+    NumberSequenceKeypoint.new(1, 0.02)
+})
+OverlayGradient.Rotation = 90
+OverlayGradient.Parent = ArtworkOverlay
+
+-- Título encima de la imagen.
+local ArtworkTitle = Instance.new("TextLabel")
+ArtworkTitle.Size = UDim2.new(1, -20, 0, 28)
+ArtworkTitle.Position = UDim2.fromOffset(10, 68)
+ArtworkTitle.BackgroundTransparency = 1
+ArtworkTitle.Text = "KOXTA  •  RIDE A PET"
+ArtworkTitle.TextColor3 = Color3.fromRGB(255,255,255)
+ArtworkTitle.TextTransparency = 0.02
+ArtworkTitle.TextSize = 13
+ArtworkTitle.Font = Enum.Font.GothamBold
+ArtworkTitle.TextXAlignment = Enum.TextXAlignment.Left
+ArtworkTitle.ZIndex = 3
+ArtworkTitle.Parent = Artwork
+
+local ArtworkAccent = Instance.new("Frame")
+ArtworkAccent.Size = UDim2.fromOffset(42, 2)
+ArtworkAccent.Position = UDim2.fromOffset(10, 94)
+ArtworkAccent.BackgroundColor3 = Color3.fromRGB(255,255,255)
+ArtworkAccent.BorderSizePixel = 0
+ArtworkAccent.ZIndex = 3
+ArtworkAccent.Parent = Artwork
+
 
 local Border = Instance.new("UIStroke")
 Border.Color = Color3.fromRGB(0,0,0)
